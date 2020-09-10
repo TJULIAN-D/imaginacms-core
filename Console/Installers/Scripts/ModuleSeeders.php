@@ -13,6 +13,12 @@ class ModuleSeeders implements SetupScript
     protected $modules = [
         'Setting',
         'Page',
+        'Ibanners',
+        'Iblog',
+        'Ilocations',
+        'Iprofile',
+        'Isite',
+        'Notification',
     ];
 
     /**

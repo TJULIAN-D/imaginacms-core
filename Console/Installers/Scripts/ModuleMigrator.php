@@ -14,10 +14,17 @@ class ModuleMigrator implements SetupScript
         'Setting',
         'Menu',
         'Media',
+        'Notification',
         'Page',
         'Dashboard',
         'Translation',
+        'Slider',
         'Tag',
+        'Ibanners',
+        'Iblog',
+        'Iforms',
+        'Iprofile',
+        'Ilocations',
     ];
 
     /**
