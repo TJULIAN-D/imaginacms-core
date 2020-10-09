@@ -55,7 +55,7 @@ class CoreServiceProvider extends ServiceProvider
         $this->publishConfig('core', 'core');
         $this->publishConfig('core', 'settings');
         $this->publishConfig('core', 'permissions');
-        $this->publishConfig('core', 'settings-fields');
+        //$this->publishConfig('core', 'settings-fields');
 
         $this->registerMiddleware($this->app['router']);
         $this->registerModuleResourceNamespaces();
