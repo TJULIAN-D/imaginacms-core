@@ -14,7 +14,7 @@ class PostInstallCommands implements SetupScript
         'key:generate',
         'migrate',
         'passport:install',
-        'module:publish-config',
+        'module:publish-config -f',
         'module:publish'
     ];
 
