@@ -1,19 +1,4 @@
 <?php
-$themeManager = app('Modules\Core\Foundation\Theme\ThemeManager');
-$themes = $themeManager->allPublicThemes();//Get themes
-$locales = config('asgard.core.available-locales');//Get locales
-
-//Order options to locale
-$optionsLocales = [];
-foreach ($locales as $key => $locale) {
-  array_push($optionsLocales, ['label' => $locale['name'], 'value' => $key]);
-}
-
-//Order themes options
-$themesOptions = [];
-foreach ($themes as $key => $theme) {
-  array_push($themesOptions, ['label' => $theme->getName(), 'value' => $key]);
-}
 
 return [
   'site-name' => [
@@ -50,9 +35,13 @@ return [
     'value' => null,
     'type' => 'select',
     'props' => [
-      'label' => 'core::settings.template',
-      'options' => $themesOptions
+      'label' => 'core::settings.template'
     ],
+    'loadOptions' => [
+      'apiRoute' => 'apiRoutes.qsite.siteSettings',
+      'select' => ['label' => 'name', 'id' => 'name'],
+      'requestParams' => ['filter' => ['settingGroupName' => 'availableThemes']]
+    ]
   ],
   'analytics-script' => [
     'name' => 'core::analytics-script',
@@ -71,8 +60,12 @@ return [
     'props' => [
       'label' => 'core::settings.locales',
       'multiple' => true,
-      'useChips' => true,
-      'options' => $optionsLocales
+      'useChips' => true
     ],
+    'loadOptions' => [
+      'apiRoute' => 'apiRoutes.qsite.siteSettings',
+      'select' => ['label' => 'name', 'id' => 'iso'],
+      'requestParams' => ['filter' => ['settingGroupName' => 'availableLocales']]
+    ]
   ],
 ];
