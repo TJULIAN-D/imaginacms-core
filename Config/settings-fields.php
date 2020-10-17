@@ -7,7 +7,7 @@ return [
     'type' => 'input',
     'isTranslatable' => true,
     'props' => [
-      'label' => '(trans)core::settings.site-name'
+      'label' => 'core::settings.site-name'
     ],
   ],
   'site-name-mini' => [
@@ -16,7 +16,7 @@ return [
     'type' => 'input',
     'isTranslatable' => true,
     'props' => [
-      'label' => '(trans)core::settings.site-name-mini'
+      'label' => 'core::settings.site-name-mini'
     ],
   ],
   'site-description' => [
@@ -25,7 +25,7 @@ return [
     'type' => 'input',
     'isTranslatable' => true,
     'props' => [
-      'label' => '(trans)core::settings.site-description',
+      'label' => 'core::settings.site-description',
       'type' => 'textarea',
       'rows' => 3,
     ],
@@ -35,7 +35,7 @@ return [
     'value' => null,
     'type' => 'select',
     'props' => [
-      'label' => '(trans)core::settings.template'
+      'label' => 'core::settings.template'
     ],
     'loadOptions' => [
       'apiRoute' => 'apiRoutes.qsite.siteSettings',
@@ -48,7 +48,7 @@ return [
     'value' => null,
     'type' => 'input',
     'props' => [
-      'label' => '(trans)core::settings.analytics-script',
+      'label' => 'core::settings.analytics-script',
       'type' => 'textarea',
       'rows' => 3,
     ],
@@ -58,7 +58,7 @@ return [
     'value' => [],
     'type' => 'select',
     'props' => [
-      'label' => '(trans)core::settings.locales',
+      'label' => 'core::settings.locales',
       'multiple' => true,
       'useChips' => true
     ],
