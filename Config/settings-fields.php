@@ -6,6 +6,7 @@ return [
     'value' => null,
     'type' => 'input',
     'isTranslatable' => true,
+    'columns' => 'col-12 col-md-6',
     'props' => [
       'label' => 'core::settings.site-name'
     ],
@@ -15,9 +16,40 @@ return [
     'value' => null,
     'type' => 'input',
     'isTranslatable' => true,
+    'columns' => 'col-12 col-md-6',
     'props' => [
       'label' => 'core::settings.site-name-mini'
     ],
+  ],
+  'locales' => [
+    'name' => 'core::locales',
+    'value' => [],
+    'type' => 'select',
+    'columns' => 'col-12 col-md-6',
+    'props' => [
+      'label' => 'core::settings.locales',
+      'multiple' => true,
+      'useChips' => true
+    ],
+    'loadOptions' => [
+      'apiRoute' => 'apiRoutes.qsite.siteSettings',
+      'select' => ['label' => 'name', 'id' => 'iso'],
+      'requestParams' => ['filter' => ['settingGroupName' => 'availableLocales']]
+    ]
+  ],
+  'template' => [
+    'name' => 'core::template',
+    'value' => null,
+    'type' => 'select',
+    'columns' => 'col-12 col-md-6',
+    'props' => [
+      'label' => 'core::settings.template'
+    ],
+    'loadOptions' => [
+      'apiRoute' => 'apiRoutes.qsite.siteSettings',
+      'select' => ['label' => 'name', 'id' => 'name'],
+      'requestParams' => ['filter' => ['settingGroupName' => 'availableThemes']]
+    ]
   ],
   'site-description' => [
     'name' => 'core::site-description',
@@ -30,19 +62,6 @@ return [
       'rows' => 3,
     ],
   ],
-  'template' => [
-    'name' => 'core::template',
-    'value' => null,
-    'type' => 'select',
-    'props' => [
-      'label' => 'core::settings.template'
-    ],
-    'loadOptions' => [
-      'apiRoute' => 'apiRoutes.qsite.siteSettings',
-      'select' => ['label' => 'name', 'id' => 'name'],
-      'requestParams' => ['filter' => ['settingGroupName' => 'availableThemes']]
-    ]
-  ],
   'analytics-script' => [
     'name' => 'core::analytics-script',
     'value' => null,
@@ -52,20 +71,5 @@ return [
       'type' => 'textarea',
       'rows' => 3,
     ],
-  ],
-  'locales' => [
-    'name' => 'core::locales',
-    'value' => [],
-    'type' => 'select',
-    'props' => [
-      'label' => 'core::settings.locales',
-      'multiple' => true,
-      'useChips' => true
-    ],
-    'loadOptions' => [
-      'apiRoute' => 'apiRoutes.qsite.siteSettings',
-      'select' => ['label' => 'name', 'id' => 'iso'],
-      'requestParams' => ['filter' => ['settingGroupName' => 'availableLocales']]
-    ]
   ],
 ];
