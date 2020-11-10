@@ -4,9 +4,11 @@ namespace Modules\Core\Providers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Modules\Core\Blade\AsgardEditorDirective;
 use Modules\Core\Console\DeleteModuleCommand;
 use Modules\Core\Console\DownloadModuleCommand;
@@ -91,8 +93,8 @@ class CoreServiceProvider extends ServiceProvider
             $this->getSidebarClassForModule('core', RegisterCoreSidebar::class)
         );
         $this->app['events']->listen(LoadingBackendTranslations::class, function (LoadingBackendTranslations $event) {
-            $event->load('core', array_dot(trans('core::core')));
-            $event->load('sidebar', array_dot(trans('core::sidebar')));
+            $event->load('core', Arr::dot(trans('core::core')));
+            $event->load('sidebar', Arr::dot(trans('core::sidebar')));
         });
     }
 
@@ -103,7 +105,7 @@ class CoreServiceProvider extends ServiceProvider
      */
     public function provides()
     {
-        return array();
+        return [];
     }
 
     /**
@@ -202,14 +204,14 @@ class CoreServiceProvider extends ServiceProvider
             $moduleConfig = $this->app['config']->get($configKey . '.useViewNamespaces');
 
             if (count($themes) > 0) {
-                if ($themes['backend'] !== null && array_get($moduleConfig, 'backend-theme') === true) {
+                if ($themes['backend'] !== null && Arr::get($moduleConfig, 'backend-theme') === true) {
                     $hints[] = $themes['backend'] . '/views/modules/' . $moduleName;
                 }
-                if ($themes['frontend'] !== null && array_get($moduleConfig, 'frontend-theme') === true) {
+                if ($themes['frontend'] !== null && Arr::get($moduleConfig, 'frontend-theme') === true) {
                     $hints[] = $themes['frontend'] . '/views/modules/' . $moduleName;
                 }
             }
-            if (array_get($moduleConfig, 'resources') === true) {
+            if (Arr::get($moduleConfig, 'resources') === true) {
                 $hints[] = base_path('resources/views/asgard/' . $moduleName);
             }
         }
@@ -352,7 +354,7 @@ class CoreServiceProvider extends ServiceProvider
     private function onBackend()
     {
         $url = app(Request::class)->path();
-        if (str_contains($url, config('asgard.core.core.admin-prefix'))) {
+        if (Str::contains($url, config('asgard.core.core.admin-prefix'))) {
             return true;
         }
 

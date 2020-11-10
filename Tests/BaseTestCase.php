@@ -8,7 +8,7 @@ abstract class BaseTestCase extends TestCase
 {
     protected $app;
 
-    public function setUp()
+    public function setUp(): void
     {
         parent::setUp();
         $this->refreshApplication();
@@ -30,11 +30,11 @@ abstract class BaseTestCase extends TestCase
     {
         $app['path.base'] = __DIR__ . '/..';
         $app['config']->set('database.default', 'sqlite');
-        $app['config']->set('database.connections.sqlite', array(
+        $app['config']->set('database.connections.sqlite', [
             'driver' => 'sqlite',
             'database' => ':memory:',
             'prefix' => '',
-        ));
+        ]);
         $app['config']->set('translatable.locales', ['en', 'fr']);
     }
 

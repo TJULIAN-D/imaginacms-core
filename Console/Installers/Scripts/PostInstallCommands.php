@@ -10,7 +10,7 @@ class PostInstallCommands implements SetupScript
     /**
      * @var array
      */
-  protected $postCommands = [
+    protected $postCommands = [
     'key:generate' => [],
     'migrate' => [],
     'passport:install' => [],
@@ -18,8 +18,7 @@ class PostInstallCommands implements SetupScript
       '-f'
     ],
     'module:publish' => []
-  ];
-  
+    ];
 
     /**
      * Fire the install script
@@ -33,9 +32,9 @@ class PostInstallCommands implements SetupScript
         }
 
         foreach ($this->postCommands as $postCommand => $options) {
-          
+
             if ($command->option('verbose')) {
-                
+
                 $command->call($postCommand, $options);
                 continue;
             }
