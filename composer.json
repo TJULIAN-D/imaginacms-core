@@ -38,6 +38,9 @@
     "mockery/mockery": "^0.9.4",
     "friendsofphp/php-cs-fixer": "^2.12"
   },
+  "conflict": {
+    "lcobucci/jwt": "3.4.0"
+  },
   "suggest": {
     "asgardcms/notification-module": "Allows notifications to be sent to the user. Optionally real-time notifications."
   },
