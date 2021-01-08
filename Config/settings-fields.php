@@ -3,7 +3,7 @@
 return [
   'site-name' => [
     'name' => 'core::site-name',
-    'value' => null,
+    'value' => 'My Site',
     'type' => 'input',
     'isTranslatable' => true,
     'columns' => 'col-12 col-md-6',
