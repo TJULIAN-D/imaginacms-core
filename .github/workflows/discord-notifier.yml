@@ -11,5 +11,5 @@ jobs:
         uses: actions/checkout@v2
       - uses: fateyan/action-discord-notifier@v1
         with:
-          message-title: New Commits to [ICore]
+          message-title: New Commits to [Module-Core]
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
