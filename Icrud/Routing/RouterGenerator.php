@@ -31,25 +31,25 @@ class RouterGenerator
         'actions' => [
           'as' => "api.{$params['module']}.{$params['prefix']}.create",
           'uses' => $params['controller'] . "@create",
-          'middleware' => ['auth:api']
+          'middleware' => isset($params['middleware']['create']) ? $params['middleware']['create'] : ['auth:api']
         ]
       ],
       (object)[//Route index
         'method' => 'get',
         'path' => '/',
         'actions' => [
-          'as' => "api.{$params['module']}.{$params['prefix']}.getItemsBy",
+          'as' => "api.{$params['module']}.{$params['prefix']}.index",
           'uses' => $params['controller'] . "@index",
-          'middleware' => ['auth:api']
+          'middleware' => isset($params['middleware']['index']) ? $params['middleware']['index'] : ['auth:api']
         ]
       ],
       (object)[//Route show
         'method' => 'get',
         'path' => '/{criteria}',
         'actions' => [
-          'as' => "api.{$params['module']}.{$params['prefix']}.getItem",
+          'as' => "api.{$params['module']}.{$params['prefix']}.show",
           'uses' => $params['controller'] . "@show",
-          'middleware' => ['auth:api']
+          'middleware' => isset($params['middleware']['show']) ? $params['middleware']['show'] : ['auth:api']
         ]
       ],
       (object)[//Route Update
@@ -58,7 +58,7 @@ class RouterGenerator
         'actions' => [
           'as' => "api.{$params['module']}.{$params['prefix']}.update",
           'uses' => $params['controller'] . "@update",
-          'middleware' => ['auth:api']
+          'middleware' => isset($params['middleware']['update']) ? $params['middleware']['update'] : ['auth:api']
         ]
       ],
       (object)[//Route delete
@@ -67,7 +67,7 @@ class RouterGenerator
         'actions' => [
           'as' => "api.{$params['module']}.{$params['prefix']}.delete",
           'uses' => $params['controller'] . "@delete",
-          'middleware' => ['auth:api']
+          'middleware' => isset($params['middleware']['delete']) ? $params['middleware']['delete'] : ['auth:api']
         ]
       ]
     ];
