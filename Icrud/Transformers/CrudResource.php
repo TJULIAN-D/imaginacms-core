@@ -5,6 +5,7 @@ namespace Modules\Core\Icrud\Transformers;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use Modules\Iblog\Transformers\CategoryTransformer;
+use Kalnoy\Nestedset\Collection;
 
 class CrudResource extends JsonResource
 {
@@ -29,6 +30,7 @@ class CrudResource extends JsonResource
     $translatableAttributes = $this->translatedAttributes ?? [];//Get translatable attributes
     $filter = json_decode($request->filter);//Get request Filters
     $languages = \LaravelLocalization::getSupportedLocales();// Get site languages
+    $excludeRelations = ['translations', 'files'];//No self-load this relations
 
     //Add attributes
     foreach (array_keys($this->getAttributes()) as $fieldName) {
@@ -52,8 +54,20 @@ class CrudResource extends JsonResource
     //Add media Files relation
     if (method_exists($this->resource, 'mediaFiles')) $response['mediaFiles'] = $this->mediaFiles();
 
+    //Add relations
+    foreach ($this->getRelations() as $relationName => $relation) {
+      //Validate if exclude relation
+      if (!in_array($relationName, $excludeRelations)) {
+        if ($relation instanceof Collection) $response[$relationName] = CrudResource::collection($relation);
+        else $response[$relationName] = new CrudResource($relation);
+      }
+    }
+
     //Add model extra attributes
     $response = array_merge($response, $this->modelAttributes($request));
+
+    //Sort response
+    ksort($response);
 
     //Response
     return $response;
