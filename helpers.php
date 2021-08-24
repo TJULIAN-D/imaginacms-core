@@ -54,3 +54,10 @@ if (! function_exists('asgard_editor')) {
         return view('core::components.textarea-wrapper', compact('fieldName', 'labelName', 'content'));
     }
 }
+
+if (! function_exists('snakeToCamel')) {
+  function snakeToCamel($input)
+  {
+    return lcfirst(str_replace(' ', '', ucwords(str_replace('_', ' ', $input))));
+  }
+}
