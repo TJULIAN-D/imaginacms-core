@@ -5,13 +5,14 @@ namespace Modules\Core\Repositories\Eloquent;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Modules\Core\Repositories\BaseRepository;
+use Modules\Core\Icrud\Repositories\Eloquent\EloquentCrudRepository;
 
 /**
  * Class EloquentCoreRepository
  *
  * @package Modules\Core\Repositories\Eloquent
  */
-abstract class EloquentBaseRepository implements BaseRepository
+abstract class EloquentBaseRepository extends EloquentCrudRepository implements BaseRepository
 {
     /**
      * @var \Illuminate\Database\Eloquent\Model An instance of the Eloquent Model
