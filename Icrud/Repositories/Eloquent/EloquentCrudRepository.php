@@ -10,6 +10,12 @@ namespace Modules\Core\Icrud\Repositories\Eloquent;
 abstract class EloquentCrudRepository
 {
   /**
+   * Filter name to replace
+   * @var array
+   */
+  protected $replaceFilters = [];
+
+  /**
    * Method to include relations to query
    * @param $query
    * @param $relations
@@ -20,6 +26,62 @@ abstract class EloquentCrudRepository
     if (in_array('*', $relations)) $relations = $this->model->getRelations() ?? [];
     //Instance relations in query
     $query->with($relations);
+    //Response
+    return $query;
+  }
+
+  /**
+   * Method to set default model filters by attributes
+   *
+   * @param $query
+   * @param $filter
+   */
+  public function setFilterQuery($query, $filter, $fieldName)
+  {
+    //Convert fieldName to camelCase
+    $fieldNameCamelCase = snakeToCamel($fieldName);
+
+    //Add if not replace this filter
+    if (!in_array($fieldNameCamelCase, $this->replaceFilters)) {
+      if (isset(((array)$filter)[$fieldNameCamelCase])) {
+        $filterData = ((array)$filter)[$fieldNameCamelCase];//Get filter data
+        $filterWhere = $filterData->where ?? null;//Get filter where condition
+        $filterOperator = $filterData->operator ?? '=';// Get filter operator
+        $filterValue = $filterData->value ?? $filterData;//Get filter value
+
+        //Set where condition
+        if ($filterWhere == 'in') {
+          $query->whereIn($fieldName, $filterValue);
+        } else if ($filterWhere == 'notIn') {
+          $query->whereNotIn($fieldName, $filterValue);
+        } else if ($filterWhere == 'between') {
+          $query->whereBetween($fieldName, $filterValue);
+        } else if ($filterWhere == 'notBetween') {
+          $query->whereNotBetween($fieldName, $filterValue);
+        } else if ($filterWhere == 'null') {
+          $query->whereNull($fieldName);
+        } else if ($filterWhere == 'notNull') {
+          $query->whereNotNull($fieldName);
+        } else if ($filterWhere == 'date') {
+          $query->whereDate($fieldName, $filterOperator, $filterValue);
+        } else if ($filterWhere == 'year') {
+          $query->whereYear($fieldName, $filterOperator, $filterValue);
+        } else if ($filterWhere == 'month') {
+          $query->whereMonth($fieldName, $filterOperator, $filterValue);
+        } else if ($filterWhere == 'day') {
+          $query->whereDay($fieldName, $filterOperator, $filterValue);
+        } else if ($filterWhere == 'time') {
+          $query->whereTime($fieldName, $filterOperator, $filterValue);
+        } else if ($filterWhere == 'column') {
+          $query->whereColumn($fieldName, $filterOperator, $filterValue);
+        } else if ($filterWhere == 'orWhere') {
+          $query->orWhere($fieldName, $filterOperator, $filterValue);
+        } else {
+          $query->where($fieldName, $filterOperator, $filterValue);
+        }
+      }
+    }
+
     //Response
     return $query;
   }
@@ -76,18 +138,15 @@ abstract class EloquentCrudRepository
       //Set fiter order to params.order: TODO: to keep and don't break old version api
       if (isset($filter->order) && isset($params->order) && !$params->order) $params->order = $filter->order;
 
-      //Filter by date
-      if (isset($filter->date)) {
-        //Filter from a date
-        if (isset($filter->date->from)) $query->whereDate(($filter->date->field ?? 'created_at'), '>=', $filter->date->from);
-        //Filter to a date
-        if (isset($filter->date->to)) $query->whereDate(($filter->date->field ?? 'created_at'), '<=', $filter->date->to);
-      }
+      //Add fillable filters
+      $fillable = array_merge($this->model->getFillable(), ['id', 'created_at', 'updated_at']);
+      foreach ($fillable as $fieldName) $query = $this->setFilterQuery($query, $filter, $fieldName);
 
-      //Filter by id
-      if (isset($filter->byId)) {
-        if (is_array($filter->byId)) $query->whereIn("{$this->model->getTable()}.id", $filter->byId);
-        else $query->where("{$this->model->getTable()}.id", $filter->byId);
+      //Add translatable attributes filters
+      foreach (($this->model->translatedAttributes ?? []) as $fieldName) {
+        $query->whereHas('translations', function ($q) use ($filter, $fieldName) {
+          $q = $this->setFilterQuery($q, $filter, $fieldName);
+        });
       }
 
       //Add model filters
