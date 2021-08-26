@@ -6,8 +6,9 @@ use Illuminate\Cache\Repository;
 use Illuminate\Config\Repository as ConfigRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Modules\Core\Repositories\BaseRepository;
+use Modules\Core\Icrud\Repositories\Cache\BaseCacheCrudDecorator;
 
-abstract class BaseCacheDecorator implements BaseRepository
+abstract class BaseCacheDecorator extends BaseCacheCrudDecorator implements BaseRepository
 {
     /**
      * @var \Modules\Core\Repositories\BaseRepository
@@ -246,34 +247,4 @@ abstract class BaseCacheDecorator implements BaseRepository
             return $this->repository->with($relationships);
         });
     }
-
-    public function getItemsBy($params)
-    {
-        return $this->remember(function () use ($params) {
-            return $this->repository->getItemsBy($params);
-        });
-    }
-
-    public function getItem($criteria, $params)
-    {
-        return $this->remember(function () use ($criteria, $params) {
-            return $this->repository->getItem($criteria, $params);
-        });
-    }
-
-    public function updateBy($criteria, $data, $params)
-    {
-        $this->cache->tags($this->entityName)->flush();
-
-        return $this->repository->updateBy($criteria, $data, $params);
-    }
-
-    public function deleteBy($criteria, $params)
-    {
-        $this->cache->tags($this->entityName)->flush();
-
-        return $this->repository->deleteBy($criteria, $params);
-    }
-
-
 }
