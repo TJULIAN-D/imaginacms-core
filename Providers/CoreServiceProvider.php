@@ -24,6 +24,7 @@ use Modules\Core\Traits\CanGetSidebarClassForModule;
 use Modules\Core\Traits\CanPublishConfiguration;
 use Nwidart\Modules\Module;
 use Modules\Core\Icrud\Routing\RouterGenerator;
+use Illuminate\Database\Schema\Blueprint;
 
 class CoreServiceProvider extends ServiceProvider
 {
@@ -385,6 +386,19 @@ class CoreServiceProvider extends ServiceProvider
     Router::macro('apiCrud', function ($params) {
       $routerGenerator = app('Modules\Core\Icrud\Routing\RouterGenerator');
       $routerGenerator->apiCrud($params);
+    });
+
+    //Instance macro to Blueprint class to auditStamps
+    Blueprint::macro('auditStamps', function () {
+      //Dates
+      $this->timestamp('deleted_at', 0)->nullable();
+      //Users
+      $this->integer('created_by')->unsigned()->nullable();
+      $this->foreign('created_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
+      $this->integer('updated_by')->unsigned()->nullable();
+      $this->foreign('updated_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
+      $this->integer('deleted_by')->unsigned()->nullable();
+      $this->foreign('deleted_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
     });
   }
 }
