@@ -214,4 +214,36 @@ class BaseCrudController extends BaseApiController
     //Return response
     return response()->json($response ?? ["data" => "Request successful"], $status ?? 200);
   }
+
+  /**
+   * Controller to delete model by criteria
+   *
+   * @param $criteria
+   * @return mixed
+   */
+  public function restore($criteria, Request $request)
+  {
+    \DB::beginTransaction();
+    try {
+      //Get params
+      $params = $this->getParamsRequest($request);
+
+      //Delete methomodel
+      $model = $this->modelRepository->restoreBy($criteria, $params);
+
+      //Throw exception if no found item
+      if (!$model) throw new Exception('Item not found', 204);
+
+      //Response
+      $response = ["data" => $this->modelTransformer($model)];
+      \DB::commit();//Commit to Data Base
+    } catch (\Exception $e) {
+      \DB::rollback();//Rollback to Data Base
+      $status = $this->getStatusError($e->getCode());
+      $response = ["errors" => $e->getMessage()];
+    }
+
+    //Return response
+    return response()->json($response ?? ["data" => "Request successful"], $status ?? 200);
+  }
 }

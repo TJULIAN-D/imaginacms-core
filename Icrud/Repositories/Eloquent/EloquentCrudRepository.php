@@ -149,6 +149,12 @@ abstract class EloquentCrudRepository
         });
       }
 
+      //Audit filter withTrashed
+      if (isset($filter->withTrashed) && $filter->withTrashed) $query->withTrashed();
+
+      //Audit filter onlyTrashed
+      if (isset($filter->onlyTrashed) && $filter->onlyTrashed) $query->onlyTrashed();
+
       //Add model filters
       $query = $this->filterQuery($query, $filter);
     }
@@ -241,6 +247,31 @@ abstract class EloquentCrudRepository
 
     //Delete Model
     if ($model) $model->delete();
+
+    //Response
+    return $model;
+  }
+
+  /**
+   * Method to delete model by criteria
+   *
+   * @param $criteria
+   * @param $params
+   * @return mixed
+   */
+  public function restoreBy($criteria, $params)
+  {
+    //Instance Query
+    $query = $this->model->query();
+
+    //Check field name to criteria
+    if (isset($params->filter->field)) $field = $params->filter->field;
+
+    //get model
+    $model = $query->where($field ?? 'id', $criteria)->withTrashed()->first();
+
+    //Delete Model
+    if ($model) $model->restore();
 
     //Response
     return $model;

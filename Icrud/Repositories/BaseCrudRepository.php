@@ -43,4 +43,11 @@ interface BaseCrudRepository
    * @return mixed
    */
   public function deleteBy($criteria, $params);
+
+  /**
+   * @param $criteria
+   * @param $params
+   * @return mixed
+   */
+  public function restoreBy($criteria, $params);
 }

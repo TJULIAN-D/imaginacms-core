@@ -69,6 +69,15 @@ class RouterGenerator
           'uses' => $params['controller'] . "@delete",
           'middleware' => isset($params['middleware']['delete']) ? $params['middleware']['delete'] : ['auth:api']
         ]
+      ],
+      (object)[//Route delete
+        'method' => 'put',
+        'path' => '/{criteria}/restore',
+        'actions' => [
+          'as' => "api.{$params['module']}.{$params['prefix']}.restore",
+          'uses' => $params['controller'] . "@restore",
+          'middleware' => isset($params['middleware']['restore']) ? $params['middleware']['restore'] : ['auth:api']
+        ]
       ]
     ];
 
