@@ -14,11 +14,8 @@ trait AuditTrait
    */
   public $userstamping = true;
 
-  public static function boot()
+  public static function bootAuditTrait()
   {
-
-    parent::boot();
-
     /**
      * add created_by and updated_by field to model fillable
      *
@@ -44,7 +41,6 @@ trait AuditTrait
 
     //event before update model
     static::updating(function ($model) {
-      \Log::info($model->getUpdatedByColumn());
       if (!$model->isUserstamping() || is_null($model->getUpdatedByColumn()) || is_null(\Auth::id())) {
         return;
       }
