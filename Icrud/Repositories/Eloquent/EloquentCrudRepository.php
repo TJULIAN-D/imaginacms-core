@@ -2,12 +2,15 @@
 
 namespace Modules\Core\Icrud\Repositories\Eloquent;
 
+use Modules\Core\Repositories\Eloquent\EloquentBaseRepository;
+use Modules\Core\Icrud\Repositories\BaseCrudRepository;
+
 /**
  * Class EloquentCrudRepository
  *
  * @package Modules\Core\Repositories\Eloquent
  */
-abstract class EloquentCrudRepository
+abstract class EloquentCrudRepository extends EloquentBaseRepository implements BaseCrudRepository
 {
   /**
    * Filter name to replace
@@ -117,6 +120,27 @@ abstract class EloquentCrudRepository
   }
 
   /**
+   * Method to create model
+   *
+   * @param $data
+   * @return mixed
+   */
+  public function create($data)
+  {
+    //Event creating model
+    $this->model->creatingCrudModel(['data' => $data]);
+
+    //Create model
+    $model = $this->model->create($data);
+
+    //Event created model
+    $model->createdCrudModel(['data' => $data]);
+
+    //Response
+    return $model;
+  }
+
+  /**
    * Method to request all data from model
    *
    * @param false $params
@@ -211,6 +235,9 @@ abstract class EloquentCrudRepository
    */
   public function updateBy($criteria, $data, $params)
   {
+    //Event updating model
+    $this->model->updatingCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
+
     //Instance Query
     $query = $this->model->query();
 
@@ -222,6 +249,9 @@ abstract class EloquentCrudRepository
 
     //Update Model
     if ($model) $model->update((array)$data);
+
+    //Event updated model
+    $model->updatedCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
 
     //Response
     return $model;
