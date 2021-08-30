@@ -390,18 +390,29 @@ class CoreServiceProvider extends ServiceProvider
 
     //Instance macro to Blueprint class to auditStamps
     Blueprint::macro('auditStamps', function () {
-      //Dates
-      $this->timestamp('deleted_at', 0)->nullable();
-      //Users
-      $this->integer('created_by')->unsigned()->nullable();
-      $this->foreign('created_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
-      $this->integer('updated_by')->unsigned()->nullable();
-      $this->foreign('updated_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
-      $this->integer('deleted_by')->unsigned()->nullable();
-      $this->foreign('deleted_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
-      //Organization
-      $this->integer('organization_id')->unsigned()->nullable();
-      $this->foreign('organization_id')->references('id')->on('organizations')->onDelete('restrict');
+      //Deleted_at
+      if (!\Schema::hasColumn($this->getTable(), 'deleted_at'))
+        $this->timestamp('deleted_at', 0)->nullable();
+      //Created by
+      if (!\Schema::hasColumn($this->getTable(), 'created_by')) {
+        $this->integer('created_by')->unsigned()->nullable();
+        $this->foreign('created_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
+      }
+      //Updated by
+      if (!\Schema::hasColumn($this->getTable(), 'created_by')) {
+        $this->integer('updated_by')->unsigned()->nullable();
+        $this->foreign('updated_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
+      }
+      //Deleted by
+      if (!\Schema::hasColumn($this->getTable(), 'created_by')) {
+        $this->integer('deleted_by')->unsigned()->nullable();
+        $this->foreign('deleted_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
+      }
+      //Organization id
+      if (\Schema::hasTable('organizations') && !\Schema::hasColumn($this->getTable(), 'organization_id')) {
+        $this->integer('organization_id')->unsigned()->nullable();
+        $this->foreign('organization_id')->references('id')->on('organizations')->onDelete('restrict');
+      }
     });
   }
 }
