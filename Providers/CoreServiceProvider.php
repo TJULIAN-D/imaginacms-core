@@ -399,6 +399,9 @@ class CoreServiceProvider extends ServiceProvider
       $this->foreign('updated_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
       $this->integer('deleted_by')->unsigned()->nullable();
       $this->foreign('deleted_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
+      //Organization
+      $this->integer('organization_id')->unsigned()->nullable();
+      $this->foreign('organization_id')->references('id')->on('organizations')->onDelete('restrict');
     });
   }
 }
