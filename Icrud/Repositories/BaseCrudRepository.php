@@ -3,12 +3,13 @@
 namespace Modules\Core\Icrud\Repositories;
 
 use Illuminate\Database\Eloquent\Builder;
+use Modules\Core\Repositories\BaseRepository;
 
 /**
  * Interface Core Crud Repository
  * @package Modules\Core\Repositories
  */
-interface BaseCrudRepository
+interface BaseCrudRepository extends BaseRepository
 {
   /**
    * @param $params
