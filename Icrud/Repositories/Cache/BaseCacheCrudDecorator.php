@@ -4,7 +4,10 @@ namespace Modules\Core\Icrud\Repositories\Cache;
 
 use Illuminate\Cache\Repository;
 
-abstract class BaseCacheCrudDecorator
+use Modules\Core\Repositories\Cache\BaseCacheDecorator;
+use Modules\Core\Icrud\Repositories\BaseCrudRepository;
+
+abstract class BaseCacheCrudDecorator extends BaseCacheDecorator implements BaseCrudRepository
 {
   public function getItemsBy($params)
   {

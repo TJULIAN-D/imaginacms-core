@@ -6,9 +6,8 @@ use Illuminate\Cache\Repository;
 use Illuminate\Config\Repository as ConfigRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Modules\Core\Repositories\BaseRepository;
-use Modules\Core\Icrud\Repositories\Cache\BaseCacheCrudDecorator;
 
-abstract class BaseCacheDecorator extends BaseCacheCrudDecorator implements BaseRepository
+abstract class BaseCacheDecorator implements BaseRepository
 {
     /**
      * @var \Modules\Core\Repositories\BaseRepository
