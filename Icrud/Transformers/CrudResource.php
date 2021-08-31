@@ -5,7 +5,7 @@ namespace Modules\Core\Icrud\Transformers;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use Modules\Iblog\Transformers\CategoryTransformer;
-use Kalnoy\Nestedset\Collection;
+use Illuminate\Database\Eloquent\Collection;
 
 class CrudResource extends JsonResource
 {
