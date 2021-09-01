@@ -12,50 +12,6 @@ use Modules\Core\Icrud\Transformers\CrudResource;
 class BaseCrudController extends BaseApiController
 {
   /**
-   * Return request to create model
-   *
-   * @param $modelData
-   * @return false
-   */
-  public function modelCreateRequest($modelData)
-  {
-    return false;
-  }
-
-  /**
-   * Return request to create model
-   *
-   * @param $modelData
-   * @return false
-   */
-  public function modelUpdateRequest($modelData)
-  {
-    return false;
-  }
-
-  /**
-   * Return model collection transformer
-   *
-   * @param $data
-   * @return mixed
-   */
-  public function modelCollectionTransformer($data)
-  {
-    return CrudResource::collection($data);
-  }
-
-  /**
-   * Return model transformer
-   *
-   * @param $data
-   * @return mixed
-   */
-  public function modelTransformer($data)
-  {
-    return new CrudResource($data);
-  }
-
-  /**
    * Controller to create model
    *
    * @param Request $request
@@ -69,14 +25,15 @@ class BaseCrudController extends BaseApiController
       $modelData = $request->input('attributes') ?? [];
 
       //Validate Request
-      if ($this->modelCreateRequest($modelData))
-        $this->validateRequestApi($this->modelCreateRequest($modelData));
+      if (isset($this->model->requestValidation['create'])) {
+        $this->validateRequestApi(new $this->model->requestValidation['create']($modelData));
+      }
 
       //Create model
       $model = $this->modelRepository->create($modelData);
 
       //Response
-      $response = ["data" => $this->modelTransformer($model)];
+      $response = ["data" => CrudResource::transformData($model)];
       \DB::commit(); //Commit to Data Base
     } catch (\Exception $e) {
       \DB::rollback();//Rollback to Data Base
@@ -102,7 +59,7 @@ class BaseCrudController extends BaseApiController
       $models = $this->modelRepository->getItemsBy($params);
 
       //Response
-      $response = ["data" => $this->modelCollectionTransformer($models)];
+      $response = ["data" => CrudResource::transformData($models)];
 
       //If request pagination add meta-page
       $params->page ? $response["meta"] = ["page" => $this->pageTransformer($dataEntity)] : false;
@@ -134,7 +91,7 @@ class BaseCrudController extends BaseApiController
       if (!$model) throw new Exception('Item not found', 204);
 
       //Response
-      $response = ["data" => $this->modelTransformer($model)];
+      $response = ["data" => CrudResource::transformData($model)];
 
       //If request pagination add meta-page
       $params->page ? $response["meta"] = ["page" => $this->pageTransformer($dataEntity)] : false;
@@ -164,8 +121,9 @@ class BaseCrudController extends BaseApiController
       $params = $this->getParamsRequest($request);
 
       //Validate Request
-      if ($this->modelUpdateRequest($modelData))
-        $this->validateRequestApi($this->modelUpdateRequest($modelData));
+      if (isset($this->model->requestValidation['update'])) {
+        $this->validateRequestApi(new $this->model->requestValidation['update']($modelData));
+      }
 
       //Update model
       $model = $this->modelRepository->updateBy($criteria, $modelData, $params);
@@ -174,7 +132,7 @@ class BaseCrudController extends BaseApiController
       if (!$model) throw new Exception('Item not found', 204);
 
       //Response
-      $response = ["data" => $this->modelTransformer($model)];
+      $response = ["data" => CrudResource::transformData($model)];
       \DB::commit();//Commit to DataBase
     } catch (\Exception $e) {
       \DB::rollback();//Rollback to Data Base
@@ -235,7 +193,7 @@ class BaseCrudController extends BaseApiController
       if (!$model) throw new Exception('Item not found', 204);
 
       //Response
-      $response = ["data" => $this->modelTransformer($model)];
+      $response = ["data" => CrudResource::transformData($model)];
       \DB::commit();//Commit to Data Base
     } catch (\Exception $e) {
       \DB::rollback();//Rollback to Data Base
