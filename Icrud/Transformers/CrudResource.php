@@ -54,13 +54,9 @@ class CrudResource extends JsonResource
     //Add media Files relation
     if (method_exists($this->resource, 'mediaFiles')) $response['mediaFiles'] = $this->mediaFiles();
 
-    //Add relations
+    //Transform relations.
     foreach ($this->getRelations() as $relationName => $relation) {
-      //Validate if exclude relation
-      if (!in_array($relationName, $excludeRelations)) {
-        if ($relation instanceof Collection) $response[$relationName] = CrudResource::collection($relation);
-        else $response[$relationName] = new CrudResource($relation);
-      }
+      if (!in_array($relationName, $excludeRelations)) $response[$relationName] = $this->transformData($relation);
     }
 
     //Add model extra attributes
@@ -71,5 +67,22 @@ class CrudResource extends JsonResource
 
     //Response
     return $response;
+  }
+
+  /**
+   * Transform data from a collection or model
+   * @param $data
+   */
+  public static function transformData($data)
+  {
+    //Transform from a collections
+    if ($data instanceof Collection) {
+      return (isset($data->first()->transformer) && $data->first()->transformer) ?
+        $data->first()->transformer::collection($data) : CrudResource::collection($data);
+    } //Transform from model
+    else {
+      return (isset($data->transformer) && $data->transformer) ?
+        new $data->transformer($data) : new CrudResource($data);
+    }
   }
 }
