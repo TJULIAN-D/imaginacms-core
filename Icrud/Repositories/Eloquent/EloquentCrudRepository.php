@@ -127,25 +127,31 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    */
   public function syncModelRelations($model,$data){
 
-    
     foreach (($model->modelRelations ?? []) as $relationName => $relationType) {
-      
       // Check if exist relation in data
       if(array_key_exists($relationName, $data)){
-        
+        // Has Many relation
         if($relationType=="hasMany"){
+          // Validate if exist relation with items
+          if($model->$relationName->count()>0)
+            $model->$relationName()->forceDelete;
+          // Create and Set relation to Model
           $model->setRelation(
             $relationName,
             $model->$relationName()->createMany($data[$relationName])
           );
         }
-
+        // Belongs to many relation
+        if($relationType=="belongsToMany"){
+          $model->setRelation(
+            $relationName,
+            $model->$relationName()->sync($data[$relationName])
+          );
+        }
       }
-
     }
 
     return $model;
-
   }
 
   /**
@@ -281,10 +287,15 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     $model = $query->where($field ?? 'id', $criteria)->first();
 
     //Update Model
-    if ($model) $model->update((array)$data);
+    if ($model){
 
-    //Event updated model
-    $model->updatedCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
+      $model->update((array)$data);
+      // Sync the relations model
+      $model = $this->syncModelRelations($model,$data);
+      //Event updated model
+      $model->updatedCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
+
+    } 
 
     //Response
     return $model;
