@@ -120,6 +120,35 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   }
 
   /**
+   * Method to sync Model Relations
+   *
+   * @param $model,$data
+   * @return $model
+   */
+  public function syncModelRelations($model,$data){
+
+    
+    foreach (($model->modelRelations ?? []) as $relationName => $relationType) {
+      
+      // Check if exist relation in data
+      if(array_key_exists($relationName, $data)){
+        
+        if($relationType=="hasMany"){
+          $model->setRelation(
+            $relationName,
+            $model->$relationName()->createMany($data[$relationName])
+          );
+        }
+
+      }
+
+    }
+
+    return $model;
+
+  }
+
+  /**
    * Method to create model
    *
    * @param $data
@@ -133,12 +162,16 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     //Create model
     $model = $this->model->create($data);
 
+    // Sync the relations model
+    $model = $this->syncModelRelations($model,$data);
+
     //Event created model
     $model->createdCrudModel(['data' => $data]);
 
     //Response
     return $model;
   }
+
 
   /**
    * Method to request all data from model
