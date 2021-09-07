@@ -399,12 +399,12 @@ class CoreServiceProvider extends ServiceProvider
         $this->foreign('created_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
       }
       //Updated by
-      if (!\Schema::hasColumn($this->getTable(), 'created_by')) {
+      if (!\Schema::hasColumn($this->getTable(), 'updated_by')) {
         $this->integer('updated_by')->unsigned()->nullable();
         $this->foreign('updated_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
       }
       //Deleted by
-      if (!\Schema::hasColumn($this->getTable(), 'created_by')) {
+      if (!\Schema::hasColumn($this->getTable(), 'deleted_by')) {
         $this->integer('deleted_by')->unsigned()->nullable();
         $this->foreign('deleted_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
       }
