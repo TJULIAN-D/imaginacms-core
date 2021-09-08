@@ -143,18 +143,13 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
           // Validate if exist relation with items
           $model->$relationName()->forceDelete();
           // Create and Set relation to Model
-          $model->setRelation(
-            $relationName,
-            $model->$relationName()->createMany($data[$relationName])
-          );
+          $model->setRelation($relationName, $model->$relationName()->createMany($data[$relationName]));
         }
 
         // Sync Belongs to many relation
         if ($relationType == "belongsToMany") {
-          $model->setRelation(
-            $relationName,
-            $model->$relationName()->sync($data[$relationName])
-          );
+          $model->$relationName()->sync($data[$relationName]);
+          $model->setRelation($relationName, $model->$relationName);
         }
       }
     }
