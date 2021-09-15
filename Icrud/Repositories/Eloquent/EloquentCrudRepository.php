@@ -270,7 +270,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @param $params
    * @return mixed
    */
-  public function getItem($criteria, $params)
+  public function getItem($criteria, $params = false)
   {
     //Instance Query
     $query = $this->model->query();
