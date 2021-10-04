@@ -22,6 +22,7 @@ return [
     ],
   ],
   'locales' => [
+    "onlySuperAdmin" => true,
     'name' => 'core::locales',
     'value' => [],
     'type' => 'select',
@@ -38,6 +39,7 @@ return [
     ]
   ],
   'template' => [
+    "onlySuperAdmin" => true,
     'name' => 'core::template',
     'value' => null,
     'type' => 'select',
