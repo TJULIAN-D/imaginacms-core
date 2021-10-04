@@ -22,7 +22,7 @@ return [
     ],
   ],
   'locales' => [
-    "onlySuperAdmin" => true,
+    
     'name' => 'core::locales',
     'value' => [],
     'type' => 'select',

@@ -58,9 +58,9 @@ class CoreServiceProvider extends ServiceProvider
     $this->publishConfig('core', 'available-locales');
     $this->publishConfig('core', 'config');
     $this->publishConfig('core', 'core');
-    $this->publishConfig('core', 'settings');
-    $this->publishConfig('core', 'permissions');
-    $this->publishConfig('core', 'settings-fields');
+    $this->mergeConfigFrom($this->getModuleConfigFilePath('core', 'permissions'), "asgard.core.permissions");
+    $this->mergeConfigFrom($this->getModuleConfigFilePath('core', 'settings'), "asgard.core.settings");
+    $this->mergeConfigFrom($this->getModuleConfigFilePath('core', 'settings-fields'), "asgard.core.settings-fields");
 
     $this->registerMiddleware($this->app['router']);
     $this->registerModuleResourceNamespaces();
