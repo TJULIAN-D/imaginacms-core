@@ -62,7 +62,7 @@ class BaseCrudController extends BaseApiController
       $response = ["data" => CrudResource::transformData($models)];
 
       //If request pagination add meta-page
-      $params->page ? $response["meta"] = ["page" => $this->pageTransformer($dataEntity)] : false;
+      $params->page ? $response["meta"] = ["page" => $this->pageTransformer($models)] : false;
     } catch (\Exception $e) {
       $status = $this->getStatusError($e->getCode());
       $response = ["errors" => $e->getMessage()];
@@ -92,9 +92,6 @@ class BaseCrudController extends BaseApiController
 
       //Response
       $response = ["data" => CrudResource::transformData($model)];
-
-      //If request pagination add meta-page
-      $params->page ? $response["meta"] = ["page" => $this->pageTransformer($dataEntity)] : false;
     } catch (\Exception $e) {
       $status = $this->getStatusError($e->getCode());
       $response = ["errors" => $e->getMessage()];

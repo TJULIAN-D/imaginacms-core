@@ -19,6 +19,12 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   protected $replaceFilters = [];
 
   /**
+   * Relation name to replace
+   * @var array
+   */
+  protected $replaceSyncModelRelations = [];
+
+  /**
    * Method to include relations to query
    * @param $query
    * @param $relations
@@ -38,6 +44,8 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    *
    * @param $query
    * @param $filter
+   * @param $fieldName
+   * @return mixed
    */
   public function setFilterQuery($query, $filter, $fieldName)
   {
@@ -120,37 +128,58 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   }
 
   /**
-   * Method to sync Model Relations
+   * Method to sync Model Relations by default
    *
-   * @param $model,$data
+   * @param $model ,$data
    * @return $model
    */
-  public function syncModelRelations($model,$data){
-
+  public function defaultSyncModelRelations($model, $data)
+  {
     foreach (($model->modelRelations ?? []) as $relationName => $relationType) {
       // Check if exist relation in data
-      if(array_key_exists($relationName, $data)){
-        // Has Many relation
-        if($relationType=="hasMany"){
+      if (!in_array($relationName, $this->replaceSyncModelRelations) && array_key_exists($relationName, $data)) {
+        // Sync Has Many relation
+        if ($relationType == "hasMany") {
           // Validate if exist relation with items
-          if($model->$relationName->count()>0)
-            $model->$relationName()->forceDelete;
+          $model->$relationName()->forceDelete();
           // Create and Set relation to Model
-          $model->setRelation(
-            $relationName,
-            $model->$relationName()->createMany($data[$relationName])
-          );
+          $model->setRelation($relationName, $model->$relationName()->createMany($data[$relationName]));
         }
-        // Belongs to many relation
-        if($relationType=="belongsToMany"){
-          $model->setRelation(
-            $relationName,
-            $model->$relationName()->sync($data[$relationName])
-          );
+
+        // Sync Belongs to many relation
+        if ($relationType == "belongsToMany") {
+          $model->$relationName()->sync($data[$relationName]);
+          $model->setRelation($relationName, $model->$relationName);
         }
       }
     }
 
+    //Response
+    return $model;
+  }
+
+  /**
+   * Method to sync Model Relations
+   *
+   * @param $model ,$data
+   * @return $model
+   */
+  public function syncModelRelations($model, $data)
+  {
+    //Get model relations data from attribute of model
+    $modelRelationsData = ($model->modelRelations ?? []);
+
+    /**
+     * Note: Add relation name to replaceSyncModelRelations attribute to replace it
+     *
+     * Example to sync relations
+     * if (array_key_exists(<relationName>, $data)){
+     *    $model->setRelation(<relationName>, $model-><relationName>()->sync($data[<relationName>]));
+     * }
+     *
+     */
+
+    //Response
     return $model;
   }
 
@@ -168,8 +197,11 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     //Create model
     $model = $this->model->create($data);
 
-    // Sync the relations model
-    $model = $this->syncModelRelations($model,$data);
+    // Default sync model relations
+    $model = $this->defaultSyncModelRelations($model, $data);
+
+    // Custom sync model relations
+    $model = $this->syncModelRelations($model, $data);
 
     //Event created model
     $model->createdCrudModel(['data' => $data]);
@@ -177,7 +209,6 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     //Response
     return $model;
   }
-
 
   /**
    * Method to request all data from model
@@ -204,13 +235,6 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       //Add fillable filters
       $fillable = array_merge($this->model->getFillable(), ['id', 'created_at', 'updated_at']);
       foreach ($fillable as $fieldName) $query = $this->setFilterQuery($query, $filter, $fieldName);
-
-      //Add translatable attributes filters
-      foreach (($this->model->translatedAttributes ?? []) as $fieldName) {
-        $query->whereHas('translations', function ($q) use ($filter, $fieldName) {
-          $q = $this->setFilterQuery($q, $filter, $fieldName);
-        });
-      }
 
       //Audit filter withTrashed
       if (isset($filter->withTrashed) && $filter->withTrashed) $query->withTrashed();
@@ -246,7 +270,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @param $params
    * @return mixed
    */
-  public function getItem($criteria, $params)
+  public function getItem($criteria, $params = false)
   {
     //Instance Query
     $query = $this->model->query();
@@ -283,19 +307,17 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     //Check field name to criteria
     if (isset($params->filter->field)) $field = $params->filter->field;
 
-    //get model
-    $model = $query->where($field ?? 'id', $criteria)->first();
-
-    //Update Model
-    if ($model){
-
+    //get model and update
+    if ($model = $query->where($field ?? 'id', $criteria)->first()) {
+      //Update Model
       $model->update((array)$data);
-      // Sync the relations model
-      $model = $this->syncModelRelations($model,$data);
+      // Default Sync model relations
+      $model = $this->defaultSyncModelRelations($model, $data);
+      // Custom Sync model relations
+      $model = $this->syncModelRelations($model, $data);
       //Event updated model
       $model->updatedCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
-
-    } 
+    }
 
     //Response
     return $model;

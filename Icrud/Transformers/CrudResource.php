@@ -6,6 +6,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use Modules\Iblog\Transformers\CategoryTransformer;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class CrudResource extends JsonResource
 {
@@ -76,7 +77,7 @@ class CrudResource extends JsonResource
   public static function transformData($data)
   {
     //Transform from a collections
-    if ($data instanceof Collection) {
+    if (($data instanceof Collection) || ($data instanceof LengthAwarePaginator)) {
       return (isset($data->first()->transformer) && $data->first()->transformer) ?
         $data->first()->transformer::collection($data) : CrudResource::collection($data);
     } //Transform from model
