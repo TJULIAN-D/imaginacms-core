@@ -47,50 +47,50 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @param $fieldName
    * @return mixed
    */
-  public function setFilterQuery($query, $filter, $fieldName)
+  public function setFilterQuery($query, $filterData, $fieldName)
   {
-    //Convert fieldName to camelCase
-    $fieldNameCamelCase = snakeToCamel($fieldName);
+    $filterWhere = $filterData->where ?? null;//Get filter where condition
+    $filterOperator = $filterData->operator ?? '=';// Get filter operator
+    $filterValue = $filterData->value ?? $filterData;//Get filter value
 
-    //Add if not replace this filter
-    if (!in_array($fieldNameCamelCase, $this->replaceFilters)) {
-      if (isset(((array)$filter)[$fieldNameCamelCase])) {
-        $filterData = ((array)$filter)[$fieldNameCamelCase];//Get filter data
-        $filterWhere = $filterData->where ?? null;//Get filter where condition
-        $filterOperator = $filterData->operator ?? '=';// Get filter operator
-        $filterValue = $filterData->value ?? $filterData;//Get filter value
-
-        //Set where condition
-        if ($filterWhere == 'in') {
-          $query->whereIn($fieldName, $filterValue);
-        } else if ($filterWhere == 'notIn') {
-          $query->whereNotIn($fieldName, $filterValue);
-        } else if ($filterWhere == 'between') {
-          $query->whereBetween($fieldName, $filterValue);
-        } else if ($filterWhere == 'notBetween') {
-          $query->whereNotBetween($fieldName, $filterValue);
-        } else if ($filterWhere == 'null') {
-          $query->whereNull($fieldName);
-        } else if ($filterWhere == 'notNull') {
-          $query->whereNotNull($fieldName);
-        } else if ($filterWhere == 'date') {
-          $query->whereDate($fieldName, $filterOperator, $filterValue);
-        } else if ($filterWhere == 'year') {
-          $query->whereYear($fieldName, $filterOperator, $filterValue);
-        } else if ($filterWhere == 'month') {
-          $query->whereMonth($fieldName, $filterOperator, $filterValue);
-        } else if ($filterWhere == 'day') {
-          $query->whereDay($fieldName, $filterOperator, $filterValue);
-        } else if ($filterWhere == 'time') {
-          $query->whereTime($fieldName, $filterOperator, $filterValue);
-        } else if ($filterWhere == 'column') {
-          $query->whereColumn($fieldName, $filterOperator, $filterValue);
-        } else if ($filterWhere == 'orWhere') {
-          $query->orWhere($fieldName, $filterOperator, $filterValue);
-        } else {
-          $query->where($fieldName, $filterOperator, $filterValue);
-        }
-      }
+    //Set where condition
+    if ($filterWhere == 'in') {
+      $query->whereIn($fieldName, $filterValue);
+    } else if ($filterWhere == 'notIn') {
+      $query->whereNotIn($fieldName, $filterValue);
+    } else if ($filterWhere == 'between') {
+      $query->whereBetween($fieldName, $filterValue);
+    } else if ($filterWhere == 'notBetween') {
+      $query->whereNotBetween($fieldName, $filterValue);
+    } else if ($filterWhere == 'null') {
+      $query->whereNull($fieldName);
+    } else if ($filterWhere == 'notNull') {
+      $query->whereNotNull($fieldName);
+    } else if ($filterWhere == 'date') {
+      $query->whereDate($fieldName, $filterOperator, $filterValue);
+    } else if ($filterWhere == 'year') {
+      $query->whereYear($fieldName, $filterOperator, $filterValue);
+    } else if ($filterWhere == 'month') {
+      $query->whereMonth($fieldName, $filterOperator, $filterValue);
+    } else if ($filterWhere == 'day') {
+      $query->whereDay($fieldName, $filterOperator, $filterValue);
+    } else if ($filterWhere == 'time') {
+      $query->whereTime($fieldName, $filterOperator, $filterValue);
+    } else if ($filterWhere == 'column') {
+      $query->whereColumn($fieldName, $filterOperator, $filterValue);
+    } else if ($filterWhere == 'orWhere') {
+      $query->orWhere($fieldName, $filterOperator, $filterValue);
+    } else if ($filterWhere == 'belongsToMany') {
+      //Sub query to get data by pivot
+      $query->whereIn('id', function ($q) use ($filterData, $filterValue) {
+        //validate filter value
+        if (!is_array($filterValue)) $filterValue = [$filterValue];
+        //filter sub query
+        $q->select($filterData->foreignPivotKey)->from($filterData->table)
+          ->whereIn($filterData->relatedPivotKey, $filterValue);
+      });
+    } else {
+      $query->where($fieldName, $filterOperator, $filterValue);
     }
 
     //Response
@@ -226,24 +226,42 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
     //Filter Query
     if (isset($params->filter)) {
-      //Short data filter
-      $filter = $params->filter;
+      $filters = $params->filter;//Short data filter
+      $modelFillable = array_merge($this->model->getFillable(), ['id', 'created_at', 'updated_at']);//Instance model fillable
+      $modelRelations = ($this->model->modelRelations ?? []);//Instance model relations
 
       //Set fiter order to params.order: TODO: to keep and don't break old version api
-      if (isset($filter->order) && isset($params->order) && !$params->order) $params->order = $filter->order;
+      if (isset($filters->order) && isset($params->order) && !$params->order) $params->order = $filters->order;
 
-      //Add fillable filters
-      $fillable = array_merge($this->model->getFillable(), ['id', 'created_at', 'updated_at']);
-      foreach ($fillable as $fieldName) $query = $this->setFilterQuery($query, $filter, $fieldName);
+      //Add Requested Filters
+      foreach ($filters as $filterName => $filterValue) {
+        $filterNameSnake = camelToSnake($filterName);//Get filter name as snakeCase
+        if (!in_array($filterName, $this->replaceFilters)) {
+          //Add fillable filter
+          if (in_array($filterNameSnake, $modelFillable)) {
+            $query = $this->setFilterQuery($query, $filterValue, $filterNameSnake);
+          } //Add relation filter
+          else if (in_array($filterName, array_keys($modelRelations))) {
+            //dd($this->model->$filterName());
+            $query = $this->setFilterQuery($query, (object)[
+              'where' => $modelRelations[$filterName],
+              'table' => $this->model->$filterName()->getTable(),
+              'foreignPivotKey' => $this->model->$filterName()->getForeignPivotKeyName(),
+              'relatedPivotKey' => $this->model->$filterName()->getRelatedPivotKeyName(),
+              'value' => $filterValue
+            ], $filterName);
+          }
+        }
+      }
 
       //Audit filter withTrashed
-      if (isset($filter->withTrashed) && $filter->withTrashed) $query->withTrashed();
+      if (isset($filters->withTrashed) && $filters->withTrashed) $query->withTrashed();
 
       //Audit filter onlyTrashed
-      if (isset($filter->onlyTrashed) && $filter->onlyTrashed) $query->onlyTrashed();
+      if (isset($filters->onlyTrashed) && $filters->onlyTrashed) $query->onlyTrashed();
 
       //Add model filters
-      $query = $this->filterQuery($query, $filter);
+      $query = $this->filterQuery($query, $filters);
     }
 
     //Order Query
