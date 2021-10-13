@@ -227,8 +227,13 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     //Filter Query
     if (isset($params->filter)) {
       $filters = $params->filter;//Short data filter
-      $modelFillable = array_merge($this->model->getFillable(), ['id', 'created_at', 'updated_at']);//Instance model fillable
-      $modelRelations = ($this->model->modelRelations ?? []);//Instance model relations
+      //Instance model relations
+      $modelRelations = ($this->model->modelRelations ?? []);
+      //Instance model fillable
+      $modelFillable = array_merge(
+        $this->model->getFillable(),
+        ['id', 'created_at', 'updated_at', 'created_by', 'updated_by']
+      );
 
       //Set fiter order to params.order: TODO: to keep and don't break old version api
       if (isset($filters->order) && isset($params->order) && !$params->order) $params->order = $filters->order;
@@ -240,8 +245,9 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
           //Add fillable filter
           if (in_array($filterNameSnake, $modelFillable)) {
             $query = $this->setFilterQuery($query, $filterValue, $filterNameSnake);
-          } //Add relation filter
-          else if (in_array($filterName, array_keys($modelRelations))) {
+          }
+          //Add relation filter
+          if (in_array($filterName, array_keys($modelRelations))) {
             //dd($this->model->$filterName());
             $query = $this->setFilterQuery($query, (object)[
               'where' => $modelRelations[$filterName],
