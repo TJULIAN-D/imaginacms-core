@@ -5,6 +5,10 @@ namespace Modules\Core\Icrud\Repositories\Eloquent;
 use Modules\Core\Repositories\Eloquent\EloquentBaseRepository;
 use Modules\Core\Icrud\Repositories\BaseCrudRepository;
 
+use Modules\Ihelpers\Events\CreateMedia;
+use Modules\Ihelpers\Events\DeleteMedia;
+use Modules\Ihelpers\Events\UpdateMedia;
+
 /**
  * Class EloquentCrudRepository
  *
@@ -206,6 +210,10 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     //Event created model
     $model->createdCrudModel(['data' => $data]);
 
+    //Event to ADD media
+    if(method_exists($model, 'mediaFiles'))
+      event(new CreateMedia($model, $data));
+
     //Response
     return $model;
   }
@@ -341,6 +349,9 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       $model = $this->syncModelRelations($model, $data);
       //Event updated model
       $model->updatedCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
+
+      if(method_exists($model, 'mediaFiles'))
+        event(new UpdateMedia($model, $data));//Event to Update media
     }
 
     //Response
