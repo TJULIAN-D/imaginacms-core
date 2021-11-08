@@ -306,15 +306,29 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   {
     //Instance Query
     $query = $this->model->query();
-
+  
     //Include relationships
     if (isset($params->include)) $query = $this->includeToQuery($query, $params->include);
-
+  
     //Check field name to criteria
     if (isset($params->filter->field)) $field = $params->filter->field;
-
+  
+    // find translatable attributes
+    $translatedAttributes = $this->model->translatedAttributes;
+  
+    // filter by translatable attributes
+    if (isset($field) && in_array($field, $translatedAttributes)) {//Filter by slug
+      $filter = $params->filter;
+      $query->whereHas('translations', function ($query) use ($criteria, $filter, $field) {
+        $query->where('locale', $filter->locale ?? \App::getLocale())
+          ->where($field, $criteria);
+      });
+    }else
+      // find by specific attribute or by id
+      $query->where($field ?? 'id', $criteria);
+    
     //Request
-    $response = $query->where($field ?? 'id', $criteria)->first();
+    $response = $query->first();
 
     //Response
     return $response;
