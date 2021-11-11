@@ -196,7 +196,8 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   public function create($data)
   {
     //Event creating model
-    $this->model->creatingCrudModel(['data' => $data]);
+    if (method_exists($this->model, 'creatingCrudModel'))
+      $this->model->creatingCrudModel(['data' => $data]);
 
     //Create model
     $model = $this->model->create($data);
@@ -208,10 +209,11 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     $model = $this->syncModelRelations($model, $data);
 
     //Event created model
-    $model->createdCrudModel(['data' => $data]);
+    if (method_exists($model, 'createdCrudModel'))
+      $model->createdCrudModel(['data' => $data]);
 
     //Event to ADD media
-    if(method_exists($model, 'mediaFiles'))
+    if (method_exists($model, 'mediaFiles'))
       event(new CreateMedia($model, $data));
 
     //Response
@@ -306,16 +308,16 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   {
     //Instance Query
     $query = $this->model->query();
-  
+
     //Include relationships
     if (isset($params->include)) $query = $this->includeToQuery($query, $params->include);
-  
+
     //Check field name to criteria
     if (isset($params->filter->field)) $field = $params->filter->field;
-  
+
     // find translatable attributes
     $translatedAttributes = $this->model->translatedAttributes;
-  
+
     // filter by translatable attributes
     if (isset($field) && in_array($field, $translatedAttributes)) {//Filter by slug
       $filter = $params->filter;
@@ -323,10 +325,10 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
         $query->where('locale', $filter->locale ?? \App::getLocale())
           ->where($field, $criteria);
       });
-    }else
+    } else
       // find by specific attribute or by id
       $query->where($field ?? 'id', $criteria);
-    
+
     //Request
     $response = $query->first();
 
@@ -345,7 +347,8 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   public function updateBy($criteria, $data, $params)
   {
     //Event updating model
-    $this->model->updatingCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
+    if (method_exists($this->model, 'updatingCrudModel'))
+      $this->model->updatingCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
 
     //Instance Query
     $query = $this->model->query();
@@ -362,9 +365,10 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       // Custom Sync model relations
       $model = $this->syncModelRelations($model, $data);
       //Event updated model
-      $model->updatedCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
+      if (method_exists($model, 'updatedCrudModel'))
+        $model->updatedCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
 
-      if(method_exists($model, 'mediaFiles'))
+      if (method_exists($model, 'mediaFiles'))
         event(new UpdateMedia($model, $data));//Event to Update media
     }
 
