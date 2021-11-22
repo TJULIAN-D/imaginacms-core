@@ -276,8 +276,10 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       //Audit filter onlyTrashed
       if (isset($filters->onlyTrashed) && $filters->onlyTrashed) $query->onlyTrashed();
 
+      //Set params into filters, to keep uploader code
+      $filters->params = $params;
       //Add model filters
-      $query = $this->filterQuery($query, $filters, $params);
+      $query = $this->filterQuery($query, $filters);
     }
 
     //Order Query
