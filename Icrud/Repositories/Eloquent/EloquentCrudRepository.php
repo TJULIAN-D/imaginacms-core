@@ -319,7 +319,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     if (isset($params->filter->field)) $field = $params->filter->field;
 
     // find translatable attributes
-    $translatedAttributes = $this->model->translatedAttributes;
+    $translatedAttributes = $this->model->translatedAttributes ?? [];
 
     // filter by translatable attributes
     if (isset($field) && in_array($field, $translatedAttributes)) {//Filter by slug
