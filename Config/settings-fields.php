@@ -7,6 +7,7 @@ return [
     'type' => 'input',
     'isTranslatable' => true,
     'columns' => 'col-12 col-md-6',
+    'quickSetting' => true,
     'props' => [
       'label' => 'core::settings.site-name'
     ],
@@ -22,7 +23,7 @@ return [
     ],
   ],
   'locales' => [
-    
+
     'name' => 'core::locales',
     'value' => [],
     'type' => 'select',
