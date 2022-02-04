@@ -106,7 +106,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @param $query
    * @param $filter
    */
-  public function filterQuery($query, $filter, $params)
+  public function filterQuery($query, $filter)
   {
     return $query;
   }
@@ -280,7 +280,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       if (is_array($filters)) $filters = (object)$filters;
       $filters->params = $params;
       //Add model filters
-      $query = $this->filterQuery($query, $filters, $params);
+      $query = $this->filterQuery($query, $filters);
     }
 
     //Order Query
