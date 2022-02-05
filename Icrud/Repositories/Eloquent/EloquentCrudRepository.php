@@ -332,6 +332,33 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       // find by specific attribute or by id
       $query->where($field ?? 'id', $criteria);
 
+    //Filter Query
+    if (isset($params->filter)) {
+      $filters = $params->filter;//Short data filter
+      //Instance model fillable
+      $modelFillable = array_merge(
+        $this->model->getFillable(),
+        ['id', 'created_at', 'updated_at', 'created_by', 'updated_by']
+      );
+
+      //Add Requested Filters
+      foreach ($filters as $filterName => $filterValue) {
+        $filterNameSnake = camelToSnake($filterName);//Get filter name as snakeCase
+        if (!in_array($filterName, $this->replaceFilters)) {
+          //Add fillable filter
+          if (in_array($filterNameSnake, $modelFillable)) {
+            $query = $this->setFilterQuery($query, $filterValue, $filterNameSnake);
+          }
+        }
+      }
+
+      //Set params into filters, to keep uploader code
+      if (is_array($filters)) $filters = (object)$filters;
+      $filters->params = $params;
+      //Add model filters
+      $query = $this->filterQuery($query, $filters);
+    }
+
     //Request
     $response = $query->first();
 
