@@ -201,4 +201,58 @@ class BaseCrudController extends BaseApiController
     //Return response
     return response()->json($response ?? ["data" => "Request successful"], $status ?? 200);
   }
+
+  /**
+   * Controller to request all model data from a static entity
+   *
+   * @param $entityClass
+   * @return mixed
+   */
+  public function indexStatic(Request $request, $params)
+  {
+    try {
+      //Instance model
+      $model = app($params['entityClass']);
+
+      //Request data
+      $method = $params['method'] ?? 'index';
+      $models = $model->$method();
+
+      //Response
+      $response = ["data" => $models];
+    } catch (\Exception $e) {
+      \Log::Error($e);
+      $response = ["messages" => [["message" => $e->getMessage(), "type" => "error"]]];
+    }
+
+    //Return response
+    return response()->json($response ?? ["data" => "Request successful"], $status ?? 200);
+  }
+
+  /**
+   * Controller to request all model data from a static entity
+   *
+   * @param $entityClass
+   * @return mixed
+   */
+  public function showStatic($criteria, Request $request, $params)
+  {
+    try {
+      //Instance model
+      $model = app($params['entityClass']);
+
+      //Request data
+      $method = $params['method'] ?? 'show';
+      $item = $model->$method($criteria);
+
+      //Response
+      $response = ["data" => $item];
+    } catch (\Exception $e) {
+      \Log::Error($e);
+      $response = ["messages" => [["message" => $e->getMessage(), "type" => "error"]]];
+    }
+
+    //Return response
+    return response()->json($response ?? ["data" => "Request successful"], $status ?? 200);
+  }
 }
