@@ -196,8 +196,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   public function create($data)
   {
     //Event creating model
-    if (method_exists($this->model, 'creatingCrudModel'))
-      $this->model->creatingCrudModel(['data' => $data]);
+    $this->dispatchesEvents(['eventName' => 'creating', 'data' => $data]);
 
     //Create model
     $model = $this->model->create($data);
@@ -209,12 +208,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     $model = $this->syncModelRelations($model, $data);
 
     //Event created model
-    if (method_exists($model, 'createdCrudModel'))
-      $model->createdCrudModel(['data' => $data]);
-
-    //Event to ADD media
-    if (method_exists($model, 'mediaFiles'))
-      event(new CreateMedia($model, $data));
+    $this->dispatchesEvents(['eventName' => 'created', 'data' => $data, 'model' => $model]);
 
     //Response
     return $model;
@@ -377,8 +371,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   public function updateBy($criteria, $data, $params)
   {
     //Event updating model
-    if (method_exists($this->model, 'updatingCrudModel'))
-      $this->model->updatingCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
+    $this->dispatchesEvents(['eventName' => 'updating', 'data' => $data, 'criteria' => $criteria]);
 
     //Instance Query
     $query = $this->model->query();
@@ -395,11 +388,12 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       // Custom Sync model relations
       $model = $this->syncModelRelations($model, $data);
       //Event updated model
-      if (method_exists($model, 'updatedCrudModel'))
-        $model->updatedCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
-
-      if (method_exists($model, 'mediaFiles'))
-        event(new UpdateMedia($model, $data));//Event to Update media
+      $this->dispatchesEvents([
+        'eventName' => 'updated',
+        'data' => $data,
+        'criteria' => $criteria,
+        'model' => $model
+      ]);
     }
 
     //Response
@@ -424,8 +418,14 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     //get model
     $model = $query->where($field ?? 'id', $criteria)->first();
 
+    //Event deleting model
+    $this->dispatchesEvents(['eventName' => 'deleting', 'criteria' => $criteria, 'model' => $model]);
+
     //Delete Model
     if ($model) $model->delete();
+
+    //Event deleted model
+    $this->dispatchesEvents(['eventName' => 'deleted', 'criteria' => $criteria]);
 
     //Response
     return $model;
@@ -454,5 +454,78 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
     //Response
     return $model;
+  }
+
+  /**
+   * Dispathes events
+   *
+   * @param $params
+   */
+  public function dispatchesEvents($params)
+  {
+    //Instance parameters
+    $eventName = $params['eventName'];
+    $data = $params['data'] ?? [];
+    $criteria = $params['criteria'] ?? null;
+    $model = $params['model'] ?? null;
+
+    //Dispath creating events
+    if ($eventName == 'creating') {
+      //Emit event creatingWithBindings
+      if (method_exists($this->model, 'creatingCrudModel'))
+        $this->model->creatingCrudModel(['data' => $data]);
+    }
+
+    //Dispath created events
+    if ($eventName == 'created') {
+      //Emit event createdWithBindings
+      if (method_exists($model, 'createdCrudModel'))
+        $model->createdCrudModel(['data' => $data]);
+      //Event to ADD media
+      if (method_exists($model, 'mediaFiles'))
+        event(new CreateMedia($model, $data));
+    }
+
+    //Dispath updating events
+    if ($eventName == 'updating') {
+      //Emit event updatingWithBindings
+      if (method_exists($this->model, 'updatingCrudModel'))
+        $this->model->updatingCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
+    }
+
+    //Dispath updated events
+    if ($eventName == 'updated') {
+      //Emit event updatedWithBindings
+      if (method_exists($model, 'updatedCrudModel'))
+        $model->updatedCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
+      //Event to Update media
+      if (method_exists($model, 'mediaFiles'))
+        event(new UpdateMedia($model, $data));
+    }
+
+    //Dispath deleting events
+    if ($eventName == 'deleting') {
+    }
+
+    //Dispath deleted events
+    if ($eventName == 'deleted') {
+    }
+
+    //Dispatches model events
+    $dispatchesEvents = $this->model->dispatchesEventsWithBindings ?? [];
+    if (isset($dispatchesEvents[$eventName]) && count($dispatchesEvents[$eventName])) {
+      //Dispath every model events from eventName
+      foreach ($dispatchesEvents[$eventName] as $event) {
+        //Get the module name from path event parameter
+        $moduleName = explode("\\", $event['path'])[1];
+        //Validate if module is enabled to dispath event
+        if (is_module_enabled($moduleName)) event(new $event['path']([
+          'data' => $data,
+          'extraData' => $event['extraData'] ?? [],
+          'criteria' => $criteria,
+          'model' => $model
+        ]));
+      }
+    }
   }
 }
