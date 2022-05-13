@@ -6,6 +6,7 @@ return [
     'value' => 'My Site',
     'type' => 'input',
     'isTranslatable' => true,
+    "onlySuperAdmin" => true,
     'columns' => 'col-12 col-md-6',
     'quickSetting' => true,
     'props' => [
@@ -17,16 +18,17 @@ return [
     'value' => null,
     'type' => 'input',
     'isTranslatable' => true,
+    "onlySuperAdmin" => true,
     'columns' => 'col-12 col-md-6',
     'props' => [
       'label' => 'core::settings.site-name-mini'
     ],
   ],
   'locales' => [
-
     'name' => 'core::locales',
     'value' => [],
     'type' => 'select',
+    "onlySuperAdmin" => true,
     'columns' => 'col-12 col-md-6',
     'props' => [
       'label' => 'core::settings.locales',
@@ -58,6 +60,7 @@ return [
     'name' => 'core::site-description',
     'value' => null,
     'type' => 'input',
+    "onlySuperAdmin" => true,
     'isTranslatable' => true,
     'props' => [
       'label' => 'core::settings.site-description',
@@ -68,6 +71,7 @@ return [
   'analytics-script' => [
     'name' => 'core::analytics-script',
     'value' => null,
+    "onlySuperAdmin" => true,
     'type' => 'input',
     'props' => [
       'label' => 'core::settings.analytics-script',
