@@ -287,14 +287,48 @@ class CoreServiceProvider extends ServiceProvider
       foreach ($locales as $locale) {
         $availableLocales = array_merge($availableLocales, [$locale => config("available-locales.$locale")]);
       }
-
+  
       $laravelDefaultLocale = $this->app->config->get('app.locale');
-
+  
       if (!in_array($laravelDefaultLocale, array_keys($availableLocales))) {
         $this->app->config->set('app.locale', array_keys($availableLocales)[0]);
       }
-      $this->app->config->set('laravellocalization.supportedLocales', $availableLocales);
-      $this->app->config->set('translatable.locales', $locales);
+  
+      //domains locales configuration. Based in the config domainsLocales{app_env}
+      $configName = "domainsLocales";
+  
+      (env('APP_ENV', 'local') == 'local') ? $configName .= "Local" : $configName .= "Prod";
+  
+      $domainsLocales = config("asgard.core.config.$configName");
+      $domainLocaleFounded = false;
+      $host = $this->app->request->getHost();
+  
+      foreach ($domainsLocales ?? [] as $locale => $domains) {
+    
+        foreach ($domains as $domain) {
+      
+          if ($host == $domain && !$domainLocaleFounded) {
+            $domainLocaleFounded = true;
+        
+            $this->app->config->set('laravellocalization.supportedLocales', [$locale => config("available-locales.$locale")]);
+            $this->app->config->set('translatable.locales', [$locale]);
+        
+            config(["app.url" => "https://" . $host]);
+            config(["app.locale" => $locale]);
+            \LaravelLocalization::setLocale($locale);
+            app('laravellocalization')->defaultLocale = $locale;
+        
+          }
+      
+        }
+    
+      }
+  
+      if (!$domainLocaleFounded) {
+        $this->app->config->set('laravellocalization.supportedLocales', $availableLocales);
+        $this->app->config->set('translatable.locales', $locales);
+      }
+  
     }
   }
 

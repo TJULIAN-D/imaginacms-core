@@ -12,6 +12,7 @@ class AsgardServiceProvider extends ServiceProvider
 {
     public function register()
     {
+ 
         if (class_exists(TranslationServiceProvider::class)) {
             $this->app->register(TranslationServiceProvider::class);
         }
