@@ -185,7 +185,7 @@ class CoreServiceProvider extends ServiceProvider
         'frontend' => $themeManager->find(setting('core::template', null, 'Flatly'))->getPath(),
       ];
     }
-
+  
     foreach ($this->app['modules']->getOrdered() as $module) {
       $this->registerViewNamespace($module, $themes);
       $this->registerLanguageNamespace($module);
