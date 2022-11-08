@@ -240,7 +240,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       );
 
       //Set fiter order to params.order: TODO: to keep and don't break old version api
-      if (isset($filters->order) && isset($params->order) && !$params->order) $params->order = $filters->order;
+      if (isset($filters->order) && !isset($params->order)) $params->order = $filters->order;
 
       //Add Requested Filters
       foreach ($filters as $filterName => $filterValue) {

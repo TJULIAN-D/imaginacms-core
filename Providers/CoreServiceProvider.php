@@ -55,6 +55,17 @@ class CoreServiceProvider extends ServiceProvider
 
   public function boot()
   {
+    // Hot fix livewire endpoints prioritizing locale
+    if (Str::contains(request()->path(), ['livewire/message'])) {
+      $locale = request()->input()["fingerprint"]["locale"] ?? locale();
+      if(config("app.locale") != $locale){
+      
+        app("laravellocalization")->currentLocale = $locale;
+        $this->app->setLocale($locale);
+        
+      }
+    }
+    
     $this->publishConfig('core', 'available-locales');
     $this->publishConfig('core', 'config');
     $this->publishConfig('core', 'core');
