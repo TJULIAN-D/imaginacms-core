@@ -23,7 +23,8 @@ return [
         'ischedulable',
         'ifillable',
         'ihelpers',
-        'iforms'
+        'iforms',
+        'ibuilder'
     ],
   
   /*
