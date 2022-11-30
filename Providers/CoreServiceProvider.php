@@ -29,14 +29,14 @@ use Illuminate\Database\Schema\Blueprint;
 class CoreServiceProvider extends ServiceProvider
 {
   use CanPublishConfiguration, CanGetSidebarClassForModule;
-
+  
   /**
    * Indicates if loading of the provider is deferred.
    *
    * @var bool
    */
   protected $defer = false;
-
+  
   /**
    * The filters base class name.
    *
@@ -52,14 +52,14 @@ class CoreServiceProvider extends ServiceProvider
       'can' => 'Authorization',
     ],
   ];
-
+  
   public function boot()
   {
     // Hot fix livewire endpoints prioritizing locale
     if (Str::contains(request()->path(), ['livewire/message'])) {
       $locale = request()->input()["fingerprint"]["locale"] ?? locale();
       if(config("app.locale") != $locale){
-      
+        
         app("laravellocalization")->currentLocale = $locale;
         $this->app->setLocale($locale);
         
@@ -72,14 +72,14 @@ class CoreServiceProvider extends ServiceProvider
     $this->mergeConfigFrom($this->getModuleConfigFilePath('core', 'permissions'), "asgard.core.permissions");
     $this->mergeConfigFrom($this->getModuleConfigFilePath('core', 'settings'), "asgard.core.settings");
     $this->mergeConfigFrom($this->getModuleConfigFilePath('core', 'settings-fields'), "asgard.core.settings-fields");
-
+    
     $this->registerMiddleware($this->app['router']);
     $this->registerModuleResourceNamespaces();
-
+    
     $this->bladeDirectives();
     $this->app['events']->listen(EditorIsRendering::class, config('asgard.core.core.wysiwyg-handler'));
   }
-
+  
   /**
    * Register the service provider.
    *
@@ -93,15 +93,15 @@ class CoreServiceProvider extends ServiceProvider
     $this->app->singleton('asgard.onBackend', function () {
       return $this->onBackend();
     });
-
+    
     $this->registerCommands();
     $this->registerServices();
     $this->setLocalesConfigurations();
-
+    
     $this->app->bind('core.asgard.editor', function () {
       return new AsgardEditorDirective();
     });
-
+    
     $this->app['events']->listen(
       BuildingSidebar::class,
       $this->getSidebarClassForModule('core', RegisterCoreSidebar::class)
@@ -110,11 +110,11 @@ class CoreServiceProvider extends ServiceProvider
       $event->load('core', Arr::dot(trans('core::core')));
       $event->load('sidebar', Arr::dot(trans('core::sidebar')));
     });
-
+    
     //Register Imagina Core CRUD
     $this->instanceICrud();
   }
-
+  
   /**
    * Get the services provided by the provider.
    *
@@ -124,7 +124,7 @@ class CoreServiceProvider extends ServiceProvider
   {
     return [];
   }
-
+  
   /**
    * Register the filters.
    *
@@ -136,12 +136,12 @@ class CoreServiceProvider extends ServiceProvider
     foreach ($this->middleware as $module => $middlewares) {
       foreach ($middlewares as $name => $middleware) {
         $class = "Modules\\{$module}\\Http\\Middleware\\{$middleware}";
-
+        
         $router->aliasMiddleware($name, $class);
       }
     }
   }
-
+  
   /**
    * Register the console commands
    */
@@ -155,15 +155,15 @@ class CoreServiceProvider extends ServiceProvider
       DeleteModuleCommand::class,
     ]);
   }
-
+  
   private function registerServices()
   {
     $this->app->singleton(ThemeManager::class, function ($app) {
       $path = $app['config']->get('asgard.core.core.themes_path');
-
+      
       return new ThemeManager($app, $path);
     });
-
+    
     $this->app->singleton('asgard.ModulesList', function () {
       return [
         'core',
@@ -179,30 +179,30 @@ class CoreServiceProvider extends ServiceProvider
       ];
     });
   }
-
+  
   /**
    * Register the modules aliases
    */
   private function registerModuleResourceNamespaces()
   {
     $themes = [];
-
+    
     // Saves about 20ms-30ms at loading
     if ($this->app['config']->get('asgard.core.core.enable-theme-overrides') === true) {
       $themeManager = app(ThemeManager::class);
-
+      
       $themes = [
         'backend' => $themeManager->find(config('asgard.core.core.admin-theme'))->getPath(),
         'frontend' => $themeManager->find(setting('core::template', null, 'Flatly'))->getPath(),
       ];
     }
-
+    
     foreach ($this->app['modules']->getOrdered() as $module) {
       $this->registerViewNamespace($module, $themes);
       $this->registerLanguageNamespace($module);
     }
   }
-
+  
   /**
    * Register the view namespaces for the modules
    * @param Module $module
@@ -212,14 +212,14 @@ class CoreServiceProvider extends ServiceProvider
   {
     $hints = [];
     $moduleName = $module->getLowerName();
-
+    
     if (is_core_module($moduleName)) {
       $configFile = 'config';
       $configKey = 'asgard.' . $moduleName . '.' . $configFile;
-
+      
       $this->mergeConfigFrom($module->getExtraPath('Config' . DIRECTORY_SEPARATOR . $configFile . '.php'), $configKey);
       $moduleConfig = $this->app['config']->get($configKey . '.useViewNamespaces');
-
+      
       if (count($themes) > 0) {
         if ($themes['backend'] !== null && Arr::get($moduleConfig, 'backend-theme') === true) {
           $hints[] = $themes['backend'] . '/views/modules/' . $moduleName;
@@ -232,12 +232,12 @@ class CoreServiceProvider extends ServiceProvider
         $hints[] = base_path('resources/views/asgard/' . $moduleName);
       }
     }
-
+    
     $hints[] = $module->getPath() . '/Resources/views';
-
+    
     $this->app['view']->addNamespace($moduleName, $hints);
   }
-
+  
   /**
    * Register the language namespaces for the modules
    * @param Module $module
@@ -245,10 +245,10 @@ class CoreServiceProvider extends ServiceProvider
   protected function registerLanguageNamespace(Module $module)
   {
     $moduleName = $module->getLowerName();
-
+    
     $langPath = base_path("resources/lang/$moduleName");
     $secondPath = base_path("resources/lang/translation/$moduleName");
-
+    
     if ($moduleName !== 'translation' && $this->hasPublishedTranslations($langPath)) {
       return $this->loadTranslationsFrom($langPath, $moduleName);
     }
@@ -258,10 +258,10 @@ class CoreServiceProvider extends ServiceProvider
     if ($this->moduleHasCentralisedTranslations($module)) {
       return $this->loadTranslationsFrom($this->getCentralisedTranslationPath($module), $moduleName);
     }
-
+    
     return $this->loadTranslationsFrom($module->getPath() . '/Resources/lang', $moduleName);
   }
-
+  
   /**
    * @param $file
    * @param $package
@@ -271,7 +271,7 @@ class CoreServiceProvider extends ServiceProvider
   {
     return preg_replace('/\\.[^.\\s]{3,4}$/', '', basename($file));
   }
-
+  
   /**
    * Set the locale configuration for
    * - laravel localization
@@ -282,7 +282,7 @@ class CoreServiceProvider extends ServiceProvider
     if ($this->app['asgard.isInstalled'] === false || $this->app->runningInConsole() === true) {
       return;
     }
-
+    
     $localeConfig = $this->app['cache']
       ->tags('setting.settings', 'global')
       ->remember(
@@ -293,22 +293,56 @@ class CoreServiceProvider extends ServiceProvider
         }
       );
     if ($localeConfig) {
+      
       $locales = json_decode($localeConfig->plainValue);
       $availableLocales = [];
       foreach ($locales as $locale) {
         $availableLocales = array_merge($availableLocales, [$locale => config("available-locales.$locale")]);
       }
-
+      
       $laravelDefaultLocale = $this->app->config->get('app.locale');
-
+      
       if (!in_array($laravelDefaultLocale, array_keys($availableLocales))) {
         $this->app->config->set('app.locale', array_keys($availableLocales)[0]);
       }
-      $this->app->config->set('laravellocalization.supportedLocales', $availableLocales);
-      $this->app->config->set('translatable.locales', $locales);
+      
+      //domains locales configuration. Based in the config domainsLocales{app_env}
+      $configName = "domainsLocales";
+      
+      (env('APP_ENV', 'local') == 'local') ? $configName .= "Local" : $configName .= "Prod";
+      
+      $domainsLocales = config("asgard.core.config.$configName");
+      $domainLocaleFounded = false;
+      $host = $this->app->request->getHost();
+      
+      foreach ($domainsLocales ?? [] as $locale => $domains) {
+        
+        foreach ($domains as $domain) {
+          if ($host == $domain && !$domainLocaleFounded) {
+            $domainLocaleFounded = true;
+            
+            $this->app->config->set('laravellocalization.supportedLocales', [$locale => config("available-locales.$locale")]);
+            $this->app->config->set('translatable.locales', [$locale]);
+            
+            config(["app.url" => "https://" . $host]);
+            config(["app.locale" => $locale]);
+            \LaravelLocalization::setLocale($locale);
+            app('laravellocalization')->defaultLocale = $locale;
+            
+          }
+          
+        }
+        
+      }
+      
+      if (!$domainLocaleFounded) {
+        $this->app->config->set('laravellocalization.supportedLocales', $availableLocales);
+        $this->app->config->set('translatable.locales', $locales);
+      }
+      
     }
   }
-
+  
   /**
    * @param string $path
    * @return bool
@@ -317,7 +351,7 @@ class CoreServiceProvider extends ServiceProvider
   {
     return is_dir($path);
   }
-
+  
   /**
    * Does a Module have it's Translations centralised in the Translation module?
    * @param Module $module
@@ -327,7 +361,7 @@ class CoreServiceProvider extends ServiceProvider
   {
     return is_dir($this->getCentralisedTranslationPath($module));
   }
-
+  
   /**
    * Get the absolute path to the Centralised Translations for a Module (via the Translations module)
    * @param Module $module
@@ -336,10 +370,10 @@ class CoreServiceProvider extends ServiceProvider
   private function getCentralisedTranslationPath(Module $module)
   {
     $path = config('modules.paths.modules') . '/Translation';
-
+    
     return $path . "/Resources/lang/{$module->getLowerName()}";
   }
-
+  
   /**
    * List of Custom Blade Directives
    */
@@ -348,22 +382,22 @@ class CoreServiceProvider extends ServiceProvider
     if (app()->environment() === 'testing') {
       return;
     }
-
+    
     /**
      * Set variable.
      * Usage: @set($variable, value)
      */
     Blade::directive('set', function ($expression) {
       list($variable, $value) = $this->getArguments($expression);
-
+      
       return "<?php {$variable} = {$value}; ?>";
     });
-
+    
     $this->app['blade.compiler']->directive('editor', function ($value) {
       return "<?php echo AsgardEditorDirective::show([$value]); ?>";
     });
   }
-
+  
   /**
    * Checks if the current url matches the configured backend uri
    * @return bool
@@ -374,10 +408,10 @@ class CoreServiceProvider extends ServiceProvider
     if (Str::contains($url, config('asgard.core.core.admin-prefix'))) {
       return true;
     }
-
+    
     return false;
   }
-
+  
   /**
    * Get argument array from argument string.
    * @param $argumentString
@@ -387,7 +421,7 @@ class CoreServiceProvider extends ServiceProvider
   {
     return str_getcsv($argumentString, ',', "'");
   }
-
+  
   /**
    * Instance Imagina Api CRUD Helpers
    */
@@ -398,7 +432,7 @@ class CoreServiceProvider extends ServiceProvider
       $routerGenerator = app('Modules\Core\Icrud\Routing\RouterGenerator');
       $routerGenerator->apiCrud($params);
     });
-
+    
     //Instance macro to Blueprint class to auditStamps
     Blueprint::macro('auditStamps', function () {
       //Deleted_at

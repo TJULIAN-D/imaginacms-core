@@ -8,14 +8,49 @@ return [
     */
     'CoreModules' => [
         'core',
+        'isite',
+        'iprofile',
         'dashboard',
         'user',
         'workshop',
         'setting',
+        'menu',
         'media',
         'tag',
         'page',
         'translation',
+        'icustom',
+        'ischedulable',
+        'ifillable',
+        'ihelpers',
+        'iforms',
+        'ibuilder'
+    ],
+  
+  /*
+|--------------------------------------------------------------------------
+| These are the domains locales configs for activate specific locale to a list of domains for each locale
+| there can't be a domain in multiple locales, the code will be assign the first match founded
+|--------------------------------------------------------------------------
+*/
+  "domainsLocalesProd" => [
+    "en" => [
+     // "www.imaginadw.com",
+    
+    ],
+    "es" => [
+     // "www.imaginacolombia.com"
+    ]
+  ],
+  
+  "domainsLocalesLocal" => [
+    "en" => [
+      //"imaginadw.ozonohosting.com",
+    
+    ],
+    "es" => [
+      //"imaginacolombia.ozonohosting.com"
+    ]
     ],
 
     /*
