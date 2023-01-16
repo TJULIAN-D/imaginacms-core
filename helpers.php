@@ -24,7 +24,7 @@ if (! function_exists('is_module_enabled')) {
     function is_module_enabled($module)
     {
       if(array_search(Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper::class,config("tenancy.bootstrappers"))>=0){
-        $activator = app(Modules\Isite\Activators\ModuleActivator::class);
+        $activator = app(config("modules.activators.file.class"));
         return array_key_exists($module,array_intersect_key($activator->modulesStatuses,app('modules')->allEnabled()));
       }
       
