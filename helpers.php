@@ -23,8 +23,9 @@ if (! function_exists('locale')) {
 if (! function_exists('is_module_enabled')) {
     function is_module_enabled($module)
     {
-      if(array_search(Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper::class,config("tenancy.bootstrappers"))>=0){
-        $activator = app(config("modules.activators.file.class"));
+      $activatorClass = get_class(app(config("modules.activators.file.class")));
+      if($activatorClass == "Modules\Isite\Activators\ModuleActivator"){
+        $activator = app($activatorClass);
         return array_key_exists($module,array_intersect_key($activator->modulesStatuses,app('modules')->allEnabled()));
       }
       
