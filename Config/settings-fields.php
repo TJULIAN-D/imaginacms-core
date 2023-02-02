@@ -25,13 +25,12 @@ return [
   'locales' => [
     'name' => 'core::locales',
     'value' => [],
-    'type' => 'select',
+    'type' => 'treeSelect',
     "onlySuperAdmin" => true,
     'columns' => 'col-12 col-md-6',
     'props' => [
       'label' => 'core::settings.locales',
-      'multiple' => true,
-      'useChips' => true
+      'multiple' => true
     ],
     'loadOptions' => [
       'apiRoute' => 'apiRoutes.qsite.siteSettings',
