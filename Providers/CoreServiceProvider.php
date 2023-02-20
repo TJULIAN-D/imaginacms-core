@@ -284,7 +284,7 @@ class CoreServiceProvider extends ServiceProvider
     }
 
     $localeConfig = $this->app['cache']
-      ->tags('setting.settings', 'global')
+      ->tags('setting.settings'.(tenant()->id ?? ""), 'global')
       ->remember(
         'asgard.locales',
         120,
