@@ -289,7 +289,11 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       if (isset($params->take) && $params->take) $query->take($params->take);//Take
       $response = $query->get();
     }
-
+    //Event retrived model
+    $this->dispatchesEvents(['eventName' => 'retrieved', 'data' => [
+      "params" => $params,
+      "response" => $response,
+    ]]);
     //Response
     return $response;
   }
@@ -355,6 +359,13 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
     //Request
     $response = $query->first();
+
+    //Event retrived model
+    $this->dispatchesEvents(['eventName' => 'retrieved', 'data' => [
+      "params" => $params,
+      "response" => $response,
+      "criteria" => $criteria
+    ]]);
 
     //Response
     return $response;
