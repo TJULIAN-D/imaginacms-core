@@ -289,11 +289,13 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       if (isset($params->take) && $params->take) $query->take($params->take);//Take
       $response = $query->get();
     }
+
     //Event retrived model
-    $this->dispatchesEvents(['eventName' => 'retrieved', 'data' => [
-      "params" => $params,
+    $this->dispatchesEvents(['eventName' => 'retrievedIndex', 'data' => [
+      "requestParams" => $params,
       "response" => $response,
     ]]);
+
     //Response
     return $response;
   }
@@ -361,8 +363,8 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     $response = $query->first();
 
     //Event retrived model
-    $this->dispatchesEvents(['eventName' => 'retrieved', 'data' => [
-      "params" => $params,
+    $this->dispatchesEvents(['eventName' => 'retrievedShow', 'data' => [
+      "requestParams" => $params,
       "response" => $response,
       "criteria" => $criteria
     ]]);
@@ -479,6 +481,20 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     $data = $params['data'] ?? [];
     $criteria = $params['criteria'] ?? null;
     $model = $params['model'] ?? null;
+
+    //Dispath retrieved events
+    if ($eventName == 'retrievedIndex') {
+      //Emit event retrievedWithBindings
+      if (method_exists($this->model, 'retrievedIndexCrudModel'))
+        $this->model->retrievedIndexCrudModel(['data' => $data]);
+    }
+
+    //Dispath retrieved events
+    if ($eventName == 'retrievedShow') {
+      //Emit event retrievedWithBindings
+      if (method_exists($this->model, 'retrievedShowCrudModel'))
+        $this->model->retrievedShowCrudModel(['data' => $data]);
+    }
 
     //Dispath creating events
     if ($eventName == 'creating') {
