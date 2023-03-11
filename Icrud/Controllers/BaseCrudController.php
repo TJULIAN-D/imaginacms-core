@@ -203,6 +203,36 @@ class BaseCrudController extends BaseApiController
   }
 
   /**
+   * Controller to do a bulk order of a model
+   * @param Request $request
+   * @return mixed
+   */
+  public function bulkOrder(Request $request)
+  {
+    \DB::beginTransaction(); //DB Transaction
+    try {
+      //Get model data
+      $data = $request->input('attributes') ?? [];
+      //Get Parameters from URL.
+      $params = $this->getParamsRequest($request);
+
+      //Update model
+      $bulkOrderResult = $this->modelRepository->bulkOrder($data, $params);
+
+      //Response
+      $response = ["data" => CrudResource::transformData($bulkOrderResult)];
+      \DB::commit();//Commit to DataBase
+    } catch (\Exception $e) {
+      \DB::rollback();//Rollback to Data Base
+      $status = $this->getStatusError($e->getCode());
+      $response = ["messages" => [["message" => $e->getMessage(), "type" => "error"]]];
+    }
+
+    //Return response
+    return response()->json($response ?? ["data" => "Request successful"], $status ?? 200);
+  }
+
+  /**
    * Controller to request all model data from a static entity
    *
    * @param $entityClass

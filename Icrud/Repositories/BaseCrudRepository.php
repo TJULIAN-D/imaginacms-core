@@ -39,6 +39,16 @@ interface BaseCrudRepository extends BaseRepository
   public function updateBy($criteria, $data, $params);
 
   /**
+  /**
+   * Bulk order
+   *
+   * @param $data
+   * @param $params
+   * @return mixed
+   */
+  public function bulkOrder($data, $params);
+
+  /**
    * @param $criteria
    * @param $params
    * @return mixed

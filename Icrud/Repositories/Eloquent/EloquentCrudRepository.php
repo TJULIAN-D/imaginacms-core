@@ -414,6 +414,25 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   }
 
   /**
+   * Method to do a bulk order
+   *
+   * @param $data
+   * @param $params
+   * @return mixed|void
+   */
+  public function bulkOrder($data, $params)
+  {
+    //Instance the orderField
+    $orderField = $params->filter->field ?? 'position';
+    //loop through data to update the position according to index data
+    foreach ($data as $key => $item) {
+      $this->model->find($item['id'])->update([$orderField => ++$key]);
+    }
+    //Response
+    return $this->model->whereIn('id', array_column($data, "id"))->get();
+  }
+
+  /**
    * Method to delete model by criteria
    *
    * @param $criteria
