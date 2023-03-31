@@ -24,9 +24,10 @@ return [
         'ifillable',
         'ihelpers',
         'iforms',
-        'ibuilder'
+        'ibuilder',
+        'igamification'
     ],
-  
+
   /*
 |--------------------------------------------------------------------------
 | These are the domains locales configs for activate specific locale to a list of domains for each locale
@@ -36,23 +37,23 @@ return [
   "domainsLocalesProd" => [
     "en" => [
      // "www.imaginadw.com",
-    
+
     ],
     "es" => [
      // "www.imaginacolombia.com"
     ]
   ],
-  
+
   "domainsLocalesLocal" => [
     "en" => [
       //"imaginadw.ozonohosting.com",
-    
+
     ],
     "es" => [
       //"imaginacolombia.ozonohosting.com"
     ]
   ],
-  
+
     /*
     |--------------------------------------------------------------------------
     | Load additional view namespaces for a module
