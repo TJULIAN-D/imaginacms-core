@@ -279,7 +279,7 @@ class CoreServiceProvider extends ServiceProvider
    */
   private function setLocalesConfigurations()
   {
-    if ($this->app['asgard.isInstalled'] === false || $this->app->runningInConsole() === true) {
+    if ($this->app['asgard.isInstalled'] === false) {
       return;
     }
 
@@ -292,6 +292,7 @@ class CoreServiceProvider extends ServiceProvider
           return DB::table('setting__settings')->whereName('core::locales')->first();
         }
       );
+    
     if ($localeConfig) {
       $locales = json_decode($localeConfig->plainValue);
       $availableLocales = [];
