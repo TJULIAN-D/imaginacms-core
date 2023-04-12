@@ -19,12 +19,14 @@ return [
         'tag',
         'page',
         'translation',
+        'notification',
         'icustom',
         'ischedulable',
         'ifillable',
         'ihelpers',
         'iforms',
         'ibuilder',
+        'ilocations',
         'igamification'
     ],
 
