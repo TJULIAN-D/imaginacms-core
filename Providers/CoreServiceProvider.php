@@ -282,6 +282,18 @@ class CoreServiceProvider extends ServiceProvider
     if ($this->app['asgard.isInstalled'] === false) {
       return;
     }
+  
+    //I have to put this validation because our default supportedLocales are (en and es)
+    //and we have a lot seeders setting in DB that two locales in the DB, so it was more easy set here the exception
+    // to avoid set locales conf only when the console command is module:seed but we need to improve the seeders for a
+    // dynamic locales seeders by example: Modules/Iblog/Database/Seeders/LayoutsBlogTableSeeder.php
+    if(app()->runningInConsole()){
+      $command = request()->server('argv');
+    
+      if (is_array($command) && isset($command[1]) && $command[1]=="module:seed") {
+        return;
+      }
+    }
 
     $localeConfig = $this->app['cache']
       ->tags('setting.settings'.(tenant()->id ?? ""), 'global')
