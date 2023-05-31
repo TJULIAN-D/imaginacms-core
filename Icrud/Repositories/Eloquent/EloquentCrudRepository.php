@@ -384,7 +384,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @param $params
    * @return mixed
    */
-  public function updateBy($criteria, $data, $params)
+  public function updateBy($criteria, $data, $params = false)
   {
     //Event updating model
     $this->dispatchesEvents(['eventName' => 'updating', 'data' => $data, 'criteria' => $criteria]);
@@ -423,7 +423,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @param $params
    * @return mixed|void
    */
-  public function bulkOrder($data, $params)
+  public function bulkOrder($data, $params = false)
   {
     //Instance the orderField
     $orderField = $params->filter->field ?? 'position';
@@ -442,7 +442,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @param $params
    * @return mixed
    */
-  public function deleteBy($criteria, $params)
+  public function deleteBy($criteria, $params = false)
   {
     //Instance Query
     $query = $this->model->query();
@@ -473,7 +473,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @param $params
    * @return mixed
    */
-  public function restoreBy($criteria, $params)
+  public function restoreBy($criteria, $params = false)
   {
     //Instance Query
     $query = $this->model->query();
