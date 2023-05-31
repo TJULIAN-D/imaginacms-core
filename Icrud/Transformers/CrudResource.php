@@ -8,6 +8,7 @@ use Modules\Iblog\Transformers\CategoryTransformer;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Modules\Media\Transformers\NewTransformers\MediaTransformer;
+use  Modules\Isite\Transformers\RevisionTransformer;
 
 class CrudResource extends JsonResource
 {
@@ -61,6 +62,11 @@ class CrudResource extends JsonResource
 
     //Add media Files relation
     if (method_exists($this->resource, 'mediaFiles')) $response['mediaFiles'] = $this->mediaFiles();
+
+    //Add Revision relation
+    if (method_exists($this->resource, 'revisions')) {
+      $response['revisions'] = RevisionTransformer::collection($this->whenLoaded('revisions'));
+    }
 
     //Transform relations.
     foreach ($this->getRelations() as $relationName => $relation) {
