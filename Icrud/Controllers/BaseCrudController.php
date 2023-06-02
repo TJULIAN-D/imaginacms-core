@@ -116,7 +116,11 @@ class BaseCrudController extends BaseApiController
       $modelData = $request->input('attributes') ?? [];
       //Get Parameters from URL.
       $params = $this->getParamsRequest($request);
-
+  
+      //auto-insert the criteria in the data to update
+      isset($params->filter->field) ? $field = $params->filter->field : $field = "id";
+      $data[$field] = $criteria;
+      
       //Validate Request
       if (isset($this->model->requestValidation['update'])) {
         $this->validateRequestApi(new $this->model->requestValidation['update']($modelData));
