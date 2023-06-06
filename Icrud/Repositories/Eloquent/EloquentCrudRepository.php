@@ -37,7 +37,8 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
   
   public function getOrCreateQuery($params, $criteria = null){
-    $params->returnAsQuery = true;
+    if(!empty($params)) $params->returnAsQuery = true;
+    else $params = (object)["returnAsQuery" => true];
     if(is_null($criteria))
       $this->query = $this->getItemsBy($params);
     else
