@@ -37,12 +37,13 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
   
   public function getOrCreateQuery($params, $criteria = null){
-    if(!empty($params)) $params->returnAsQuery = true;
-    else $params = (object)["returnAsQuery" => true];
+    $cloneParams = json_decode(json_encode($params));
+    if(!empty($params)) $cloneParams->returnAsQuery = true;
+    else $newParams = (object)["returnAsQuery" => true];
     if(is_null($criteria))
-      $this->query = $this->getItemsBy($params);
+      $this->query = $this->getItemsBy($cloneParams);
     else
-      $this->query = $this->getItem($criteria, $params);
+      $this->query = $this->getItem($criteria, $cloneParams);
     
     return $this->query;
   }
@@ -336,7 +337,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     }
     
     //Response as query
-    if (isset($params->returnAsQuery) && $params->returnAsQuery) $response = $query;
+    if (isset($params->returnAsQuery) && $params->returnAsQuery) return $query;
     
     //Response paginate
     else if (isset($params->page) && $params->page) $response = $query->paginate($params->take);
@@ -424,7 +425,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     }
     
     //Response as query
-    if (isset($params->returnAsQuery) && $params->returnAsQuery) $response = $query;
+    if (isset($params->returnAsQuery) && $params->returnAsQuery) return $query;
     
     //Request
     $response = $query->first();
