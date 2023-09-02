@@ -165,6 +165,7 @@ trait AuditTrait
    */
   public function isUserstamping()
   {
+    $this->userstamping = config("asgard.core.config.userstamping");
     return $this->userstamping;
   }
 

@@ -89,8 +89,7 @@ class CrudResource extends JsonResource
     }
 
     //Add model extra attributes
-    $response = array_merge($response, $this->modelAttributes($request));
-
+    $response = array_merge_recursive($response, $this->modelAttributes($request));
     //Sort response
     ksort($response);
 

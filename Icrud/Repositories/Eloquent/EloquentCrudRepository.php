@@ -340,7 +340,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     if (isset($params->returnAsQuery) && $params->returnAsQuery) return $query;
     
     //Response paginate
-    else if (isset($params->page) && $params->page) $response = $query->paginate($params->take);
+    else if (isset($params->page) && $params->page) $response = $query->paginate($params->take, ['*'], null, $params->page);
     //Response complete
     else {
       if (isset($params->take) && $params->take) $query->take($params->take);//Take
