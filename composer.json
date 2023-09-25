@@ -36,7 +36,7 @@
     "phpunit/phpunit": "^10",
     "orchestra/testbench": "^8.5",
     "mockery/mockery": "^1.4.4",
-    "friendsofphp/php-cs-fixer": "^2.12"
+    "friendsofphp/php-cs-fixer": "^3.27.0"
   },
   "conflict": {
     "lcobucci/jwt": "3.4.0"
