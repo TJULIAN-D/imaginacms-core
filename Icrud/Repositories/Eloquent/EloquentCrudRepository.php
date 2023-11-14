@@ -223,7 +223,9 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     //Event creating model
     $this->dispatchesEvents(['eventName' => 'creating', 'data' => $data]);
 
+    // Call function before create it, and take all change from $data
     $this->beforeCreate($data);
+
     //Create model
     $model = $this->model->create($data);
 
@@ -232,6 +234,9 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
     // Custom sync model relations
     $model = $this->syncModelRelations($model, $data);
+
+    // Call function after create it, and take all change from $data and $model
+    $this->afterCreate($model, $data);
 
     //Event created model
     $this->dispatchesEvents(['eventName' => 'created', 'data' => $data, 'model' => $model]);
@@ -247,6 +252,15 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    */
   public function beforeCreate(&$data){
   
+  }
+
+  /**
+   * Method to override in the child class if there need modify the data after create
+   * @param $model ,$data
+   * @return void
+   */
+  public function afterCreate(&$model, &$data){
+
   }
   
   /**
@@ -470,6 +484,8 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       $model = $this->defaultSyncModelRelations($model, $data);
       // Custom Sync model relations
       $model = $this->syncModelRelations($model, $data);
+      // Call function after update it, and take all change from $data and $model
+      $this->afterUpdate($model, $data);
       //Event updated model
       $this->dispatchesEvents([
         'eventName' => 'updated',
@@ -490,6 +506,14 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    */
   public function beforeUpdate(&$data){
   
+  }
+  /**
+   * Method to override in the child class if there need modify the data after update
+   * @param $model, $data
+   * @return void
+   */
+  public function afterUpdate(&$model, &$data){
+
   }
   /**
    * Method to do a bulk order
