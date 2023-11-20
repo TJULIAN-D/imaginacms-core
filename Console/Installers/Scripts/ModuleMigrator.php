@@ -28,7 +28,8 @@ class ModuleMigrator implements SetupScript
         'Iforms',
         'Iprofile',
         'Ilocations',
-        'Iredirect'
+        'Iredirect',
+        'iqreable'
     ];
 
     /**
