@@ -3,6 +3,7 @@
 namespace Modules\Core\Icrud\Transformers;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Str;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use Modules\Iblog\Transformers\CategoryTransformer;
 use Illuminate\Database\Eloquent\Collection;
@@ -31,12 +32,17 @@ class CrudResource extends JsonResource
   {
     $response = []; //Default Response
     $translatableAttributes = $this->translatedAttributes ?? [];//Get translatable attributes
+    $attributes = method_exists($this->resource,"getFillables") ?
+     $this->resource->getFillables() : [];//Get all fillable attributes, just for model that extends CrudModel
+  
+    $attributes = array_merge($attributes,array_keys($this->getAttributes())); //get Attributes add extras non fillables attributes
+    
     $filter = json_decode($request->filter);//Get request Filters
     $languages = \LaravelLocalization::getSupportedLocales();// Get site languages
     $excludeRelations = ['translations'];//No self-load this relations
 
     //Add attributes
-    foreach (array_keys($this->getAttributes()) as $fieldName) {
+    foreach ($attributes as $fieldName) {
       $response[snakeToCamel($fieldName)] = $this->when(
         (isset($this[$fieldName]) || is_null($this[$fieldName])),
         $this[$fieldName]
@@ -87,6 +93,27 @@ class CrudResource extends JsonResource
 
       }
     }
+
+    
+    
+    
+    //Add magic attributes
+    foreach (get_class_methods($this->resource) as $methodName){
+      // if the method starts with get and ends with Attribute
+      // excepting base method "getAttribute"
+      if(Str::startsWith($methodName, "get") && Str::endsWith($methodName, "Attribute")
+        && $methodName != "getAttribute"){
+        
+        //removing "get" and "Attribute" to get the real attribute name
+        $attributeName = Str::replace(["get", "Attribute"], ["",""],$methodName);
+        
+        //avoid the magic methods of the fillables
+        if(!in_array(Str::snake($attributeName), $attributes)){
+            $response[Str::camel($attributeName)] = $this->{$methodName}();
+        }
+      }
+    }
+
 
     //Add model extra attributes
     $response = array_merge($response, $this->modelAttributes($request));

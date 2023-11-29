@@ -35,7 +35,16 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    */
   protected $query = null;
 
-  
+  /**
+   * Attribute to define default relations
+   * all apply to getItemsBy and getItem
+   * index apply in the getItemsBy
+   * show apply in the getItem
+   * @var array
+   */
+  protected $with = [/*all => [] ,index => [],show => []*/];
+
+
   public function getOrCreateQuery($params, $criteria = null){
     $cloneParams = json_decode(json_encode($params));
     if(!empty($params)) $cloneParams->returnAsQuery = true;
@@ -53,12 +62,17 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @param $query
    * @param $relations
    */
-  public function includeToQuery($query, $relations)
+  public function includeToQuery($query, $relations, $method = null)
   {
     //request all categories instances in the "relations" attribute in the entity model
     if (in_array('*', $relations)) $relations = $this->model->getRelations() ?? [];
+    else { // Set default Relations
+      $relations = array_merge($relations, ($this->with['all'] ?? [])); // Include all default relations
+      if ($method == 'show') $relations = array_merge($relations, ($this->with['show'] ?? [])); // include show default relations
+      if ($method == 'index') $relations = array_merge($relations, ($this->with['index'] ?? [])); // include index default reltaion
+    }
     //Instance relations in query
-    $query->with($relations);
+    $query->with(array_unique($relations));
     //Response
     return $query;
   }
@@ -278,7 +292,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       $query = $this->model->query();
   
       //Include relationships
-      if (isset($params->include)) $query = $this->includeToQuery($query, $params->include);
+      if (isset($params->include)) $query = $this->includeToQuery($query, $params->include, "index");
   
       //Filter Query
       if (isset($params->filter)) {
@@ -388,7 +402,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       $query = $this->model->query();
   
       //Include relationships
-      if (isset($params->include)) $query = $this->includeToQuery($query, $params->include);
+      if (isset($params->include)) $query = $this->includeToQuery($query, $params->include, "show");
   
       //Check field name to criteria
       if (isset($params->filter->field)) $field = $params->filter->field;
