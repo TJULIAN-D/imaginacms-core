@@ -103,10 +103,11 @@ class CrudResource extends JsonResource
       // excepting base method "getAttribute"
       if(Str::startsWith($methodName, "get") && Str::endsWith($methodName, "Attribute")
         && $methodName != "getAttribute"){
+        
         //removing "get" and "Attribute" to get the real attribute name
         $attributeName = Str::replace(["get", "Attribute"], ["",""],$methodName);
+        
         //avoid the magic methods of the fillables
-        //if($attributeName == "Url") dd($this->hasGetMutator(Str::snake($attributeName)));
         if(!in_array(Str::snake($attributeName), $attributes)){
             $response[Str::camel($attributeName)] = $this->{$methodName}();
         }
