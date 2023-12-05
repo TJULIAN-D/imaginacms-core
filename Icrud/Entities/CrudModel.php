@@ -10,4 +10,8 @@ use Modules\Isite\Traits\RevisionableTrait;
 class CrudModel extends Model
 {
   use AuditTrait, hasEventsWithBindings, RevisionableTrait;
+
+  function getFillables(){
+    return $this->fillable;
+  }
 }
