@@ -134,7 +134,7 @@ class RouterGenerator
   private function getStaticApiRoutes($params)
   {
     //Instance controller
-    $controller = new BaseCrudController();
+    $controller = app("Modules\Core\Icrud\Controllers\BaseCrudController");
 
     return [
       (object)[//Route Index
