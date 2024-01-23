@@ -52,12 +52,12 @@ abstract class BaseCacheCrudDecorator extends BaseCacheDecorator implements Base
   
   public function createKey($query, $params){
     
-    return ($query->toSql() ?? "" .
-      \serialize($query->getBindings() ?? "") .
-      \serialize($params->filter ?? "") .
-      \serialize($params->order ?? "") .
-      \serialize($params->include ?? "") .
-      \serialize($params->page ?? "") .
-      \serialize($params->take ?? ""));
+    return str_replace(["\"","`","{","}"],"",(($query->toSql() ?? "") .
+      (\serialize($query->getBindings() ?? "") ).
+      (!empty($params->filter) ? \serialize($params->filter) : "") .
+      (!empty($params->order) ? \serialize($params->order) : "")  .
+      (!empty($params->include) ? \serialize($params->include) : "")  .
+      (!empty($params->page) ? \serialize($params->page) : "")  .
+      (!empty($params->take) ? \serialize($params->take) : "") ));
   }
 }
