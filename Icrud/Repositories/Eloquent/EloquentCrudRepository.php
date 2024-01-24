@@ -21,14 +21,14 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @var array
    */
   protected $replaceFilters = [];
-  
+
   /**
    * Relation name to replace
    * @var array
    */
   protected $replaceSyncModelRelations = [];
-  
-  
+
+
   /**
    * Query where to save the current query
    * @var null
@@ -45,18 +45,19 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   protected $with = [/*all => [] ,index => [],show => []*/];
 
 
-  public function getOrCreateQuery($params, $criteria = null){
+  public function getOrCreateQuery($params, $criteria = null)
+  {
     $cloneParams = json_decode(json_encode($params));
-    if(!empty($params)) $cloneParams->returnAsQuery = true;
+    if (!empty($params)) $cloneParams->returnAsQuery = true;
     else $newParams = (object)["returnAsQuery" => true];
-    if(is_null($criteria))
+    if (is_null($criteria))
       $this->query = $this->getItemsBy($cloneParams);
     else
       $this->query = $this->getItem($criteria, $cloneParams);
-    
+
     return $this->query;
   }
-  
+
   /**
    * Method to include relations to query
    * @param $query
@@ -155,10 +156,12 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   public function orderQuery($query, $order, $noSortOrder)
   {
     //Verify if the model has sort_order column and ordering by that column by default
-    $fillable = $this->model->fillable;
-    $bySortOrder = isset($fillable["sort_order"]) && !$noSortOrder;
-  
-    $orderField = $order->field ?? ($bySortOrder ? 'sort_order' : 'created_at');//Default field
+    $modelFields = $this->model->getFillable();
+
+    //Include sort_order filter by default
+    if (in_array('sort_order', $modelFields) && !$noSortOrder) $query->orderByRaw('COALESCE(sort_order, 0) desc');
+
+    $orderField = $order->field ?? 'created_at';//Default field
     $orderWay = $order->way ?? 'desc';//Default way
 
     //Set order to query
@@ -258,14 +261,15 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     //Response
     return $model;
   }
-  
+
   /**
    * Method to override in the child class if there need modify the data before create
    * @param $data
    * @return void
    */
-  public function beforeCreate(&$data){
-  
+  public function beforeCreate(&$data)
+  {
+
   }
 
   /**
@@ -273,10 +277,11 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @param $model ,$data
    * @return void
    */
-  public function afterCreate(&$model, &$data){
+  public function afterCreate(&$model, &$data)
+  {
 
   }
-  
+
   /**
    * Method to request all data from model
    *
@@ -286,14 +291,14 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   public function getItemsBy($params)
   {
     //reusing query if exist
-    if(empty($this->query)) {
-      
+    if (empty($this->query)) {
+
       //Instance Query
       $query = $this->model->query();
-  
+
       //Include relationships
       if (isset($params->include)) $query = $this->includeToQuery($query, $params->include, "index");
-  
+
       //Filter Query
       if (isset($params->filter)) {
         $filters = $params->filter;//Short data filter
@@ -304,10 +309,10 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
           $this->model->getFillable(),
           ['id', 'created_at', 'updated_at', 'created_by', 'updated_by']
         );
-    
+
         //Set fiter order to params.order: TODO: to keep and don't break old version api
         if (isset($filters->order) && !isset($params->order)) $params->order = $filters->order;
-    
+
         //Add Requested Filters
         foreach ($filters as $filterName => $filterValue) {
           $filterNameSnake = camelToSnake($filterName);//Get filter name as snakeCase
@@ -332,7 +337,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
             }
           }
         }
-        
+
         //Filter by date
         if (isset($filter->date)) {
           $date = $filter->date;//Short filter date
@@ -342,31 +347,31 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
           if (isset($date->to))//to a date
             $query->whereDate($date->field, '<=', $date->to);
         }
-        
+
         //Audit filter withTrashed
         if (isset($filters->withTrashed) && $filters->withTrashed) $query->withTrashed();
-    
+
         //Audit filter onlyTrashed
         if (isset($filters->onlyTrashed) && $filters->onlyTrashed) $query->onlyTrashed();
-    
+
         //Set params into filters, to keep uploader code
         if (is_array($filters)) $filters = (object)$filters;
 
         //Add model filters
         $query = $this->filterQuery($query, $filters, $params);
       }
-  
+
       //Order Query
       $query = $this->orderQuery($query, $params->order ?? true, $filters->noSortOrder ?? false);
-      
-    }else{
+
+    } else {
       //reusing query if exist
       $query = $this->query;
     }
-    
+
     //Response as query
     if (isset($params->returnAsQuery) && $params->returnAsQuery) return $query;
-    
+
     //Response paginate
     else if (isset($params->page) && $params->page) $response = $query->paginate($params->take, ['*'], null, $params->page);
     //Response complete
@@ -394,22 +399,22 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    */
   public function getItem($criteria, $params = false)
   {
-  
+
     //reusing query if exist
-    if(empty($this->query)) {
-  
+    if (empty($this->query)) {
+
       //Instance Query
       $query = $this->model->query();
-  
+
       //Include relationships
       if (isset($params->include)) $query = $this->includeToQuery($query, $params->include, "show");
-  
+
       //Check field name to criteria
       if (isset($params->filter->field)) $field = $params->filter->field;
-  
+
       // find translatable attributes
       $translatedAttributes = $this->model->translatedAttributes ?? [];
-  
+
       // filter by translatable attributes
       if (isset($field) && in_array($field, $translatedAttributes)) {//Filter by slug
         $filter = $params->filter;
@@ -420,7 +425,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       } else
         // find by specific attribute or by id
         $query->where($field ?? 'id', $criteria);
-  
+
       //Filter Query
       if (isset($params->filter)) {
         $filters = $params->filter;//Short data filter
@@ -429,7 +434,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
           $this->model->getFillable(),
           ['id', 'created_at', 'updated_at', 'created_by', 'updated_by']
         );
-    
+
         //Add Requested Filters
         foreach ($filters as $filterName => $filterValue) {
           $filterNameSnake = camelToSnake($filterName);//Get filter name as snakeCase
@@ -440,21 +445,21 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
             }
           }
         }
-    
+
         //Set params into filters, to keep uploader code
         if (is_array($filters)) $filters = (object)$filters;
-        
+
         //Add model filters
         $query = $this->filterQuery($query, $filters, $params);
       }
-    }else{
+    } else {
       //reusing query if exist
       $query = $this->query;
     }
-    
+
     //Response as query
     if (isset($params->returnAsQuery) && $params->returnAsQuery) return $query;
-    
+
     //Request
     $response = $query->first();
 
@@ -490,7 +495,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
     //get model and update
     if ($model = $query->where($field ?? 'id', $criteria)->first()) {
-      
+
       $this->beforeUpdate($data);
       //Update Model
       $model->update((array)$data);
@@ -512,23 +517,27 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     //Response
     return $model;
   }
-  
+
   /**
    * Method to override in the child class if there need modify the data before update
    * @param $data
    * @return void
    */
-  public function beforeUpdate(&$data){
-  
-  }
-  /**
-   * Method to override in the child class if there need modify the data after update
-   * @param $model, $data
-   * @return void
-   */
-  public function afterUpdate(&$model, &$data){
+  public function beforeUpdate(&$data)
+  {
 
   }
+
+  /**
+   * Method to override in the child class if there need modify the data after update
+   * @param $model , $data
+   * @return void
+   */
+  public function afterUpdate(&$model, &$data)
+  {
+
+  }
+
   /**
    * Method to do a bulk order
    *
