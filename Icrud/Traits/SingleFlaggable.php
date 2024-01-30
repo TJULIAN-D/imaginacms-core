@@ -15,13 +15,13 @@ trait SingleFlaggable
     static::createdWithBindings(function ($model) {
       //Instance the params
       $model->instanceParams();
-      $model->setSingleFlag($model->getEventBindings('createdWithBindings'));
+      $model->setSingleFlag();
     });
     //Listen event after update model
     static::updatedWithBindings(function ($model) {
       //Instance the params
       $model->instanceParams();
-      $model->setSingleFlag($model->getEventBindings('updatedWithBindings'));
+      $model->setSingleFlag();
     });
 
     static::deleted(function ($model) {
@@ -77,11 +77,11 @@ trait SingleFlaggable
    * @param $model
    * @return void
    */
-  public function setSingleFlag($model)
+  public function setSingleFlag()
   {
     //Returns if not enabled
     if(!$this->params->isEnableSingleFlaggable) return;
-    $data = $model["data"];
+    $data = $this->toArray();
 
     //Validates if the flag can be managed
     if ($this->canManageFlag($data)) {
