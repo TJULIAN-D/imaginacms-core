@@ -495,7 +495,6 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
     //get model and update
     if ($model = $query->where($field ?? 'id', $criteria)->first()) {
-
       $this->beforeUpdate($data);
       //Update Model
       $model->update((array)$data);
@@ -555,6 +554,25 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     }
     //Response
     return $this->model->whereIn('id', array_column($data, "id"))->get();
+  }
+
+  /**
+   * Method to do a bulk update models
+   *
+   * @param $data
+   * @param $params
+   * @return mixed|void
+   */
+  public function bulkUpdate($data, $params = false)
+  {
+    //Instance the orderField
+    $fieldName = $params->filter->field ?? 'id';
+    //loop through data to update the position according to index data
+    foreach ($data as $key => $item) {
+      $this->model->find($item[$fieldName])->update($item);
+    }
+    //Response
+    return true;
   }
 
   /**
