@@ -569,7 +569,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     $fieldName = $params->filter->field ?? 'id';
     //loop through data to update the position according to index data
     foreach ($data as $key => $item) {
-      $this->model->find($item[$fieldName])->update($item);
+      $this->updateBy($item[$fieldName], $item, $params);
     }
     //Response
     return true;
