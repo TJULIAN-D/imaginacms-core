@@ -579,6 +579,22 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   }
 
   /**
+   * Method to do a bulk create models
+   *
+   * @param $data
+   * @return mixed|void
+   */
+  public function bulkCreate($data)
+  {
+    //loop through data to create the position according to index data
+    foreach ($data as $key => $item) {
+      $this->create($item);
+    }
+    //Response
+    return true;
+  }
+
+  /**
    * Method to delete model by criteria
    *
    * @param $criteria
