@@ -52,5 +52,19 @@ interface BaseCrudRepository extends BaseRepository
    */
   public function restoreBy($criteria, $params = false);
 
- 
+  /**
+   * @param $data
+   * @param $params
+   * @return mixed
+   */
+  public function bulkOrder($data, $params = false);
+
+  /**
+   * @param $data
+   * @param $params
+   * @return mixed
+   */
+  public function bulkUpdate($data, $params = false);
+
+
 }
