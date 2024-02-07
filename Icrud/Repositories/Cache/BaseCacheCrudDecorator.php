@@ -13,7 +13,7 @@ abstract class BaseCacheCrudDecorator extends BaseCacheDecorator implements Base
   {
     
     $query = $this->repository->getOrCreateQuery($params);
-    
+
     return $this->remember(function () use ($params) {
       return $this->repository->getItemsBy($params);
     },$this->createKey($query, $params));
@@ -51,13 +51,15 @@ abstract class BaseCacheCrudDecorator extends BaseCacheDecorator implements Base
   }
   
   public function createKey($query, $params){
+   
+      return str_replace(["\"","`","{","}"],"",(($query ? $query->toSql() ?? "" : "") .
+        (\serialize($query ? $query->getBindings() ?? "" : "") ).
+        (!empty($params->filter) ? \serialize($params->filter) : "") .
+        (!empty($params->order) ? \serialize($params->order) : "")  .
+        (!empty($params->include) ? \serialize($params->include) : "")  .
+        (!empty($params->page) ? \serialize($params->page) : "")  .
+        (!empty($params->take) ? \serialize($params->take) : "") ));
+   
     
-    return str_replace(["\"","`","{","}"],"",(($query->toSql() ?? "") .
-      (\serialize($query->getBindings() ?? "") ).
-      (!empty($params->filter) ? \serialize($params->filter) : "") .
-      (!empty($params->order) ? \serialize($params->order) : "")  .
-      (!empty($params->include) ? \serialize($params->include) : "")  .
-      (!empty($params->page) ? \serialize($params->page) : "")  .
-      (!empty($params->take) ? \serialize($params->take) : "") ));
   }
 }
