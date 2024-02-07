@@ -21,14 +21,14 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @var array
    */
   protected $replaceFilters = [];
-
+  
   /**
    * Relation name to replace
    * @var array
    */
   protected $replaceSyncModelRelations = [];
-
-
+  
+  
   /**
    * Query where to save the current query
    * @var null
@@ -45,19 +45,22 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   protected $with = [/*all => [] ,index => [],show => []*/];
 
 
-  public function getOrCreateQuery($params, $criteria = null)
-  {
-    $cloneParams = json_decode(json_encode($params));
-    if (!empty($params)) $cloneParams->returnAsQuery = true;
-    else $newParams = (object)["returnAsQuery" => true];
-    if (is_null($criteria))
+  public function getOrCreateQuery($params, $criteria = null){
+    
+    if(!empty($params)) {
+      $cloneParams = clone $params;
+      $cloneParams->returnAsQuery = true;
+    }
+    else $cloneParams = (object)["returnAsQuery" => true];
+
+    if(is_null($criteria))
       $this->query = $this->getItemsBy($cloneParams);
     else
       $this->query = $this->getItem($criteria, $cloneParams);
-
+  
     return $this->query;
   }
-
+  
   /**
    * Method to include relations to query
    * @param $query

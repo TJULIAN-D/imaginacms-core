@@ -42,12 +42,26 @@ abstract class BaseCacheCrudDecorator extends BaseCacheDecorator implements Base
 
     return $this->repository->deleteBy($criteria, $params);
   }
-
+  
   public function restoreBy($criteria, $params = false)
   {
     $this->cache->tags($this->entityName)->flush();
-
+    
     return $this->repository->restoreBy($criteria, $params);
+  }
+  
+  public function bulkOrder($data, $params = false)
+  {
+    $this->cache->tags($this->entityName)->flush();
+    
+    return $this->repository->bulkOrder($data, $params);
+  }
+  
+  public function bulkUpdate($data, $params = false)
+  {
+    $this->cache->tags($this->entityName)->flush();
+    
+    return $this->repository->bulkUpdate($data, $params);
   }
   
   public function createKey($query, $params){
