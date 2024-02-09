@@ -63,7 +63,13 @@ abstract class BaseCacheCrudDecorator extends BaseCacheDecorator implements Base
     
     return $this->repository->bulkUpdate($data, $params);
   }
-  
+
+  public function bulkCreate($data)
+  {
+    $this->cache->tags($this->entityName)->flush();
+
+    return $this->repository->bulkCreate($data);
+  }
   public function createKey($query, $params){
    
       return str_replace(["\"","`","{","}"],"",(($query ? $query->toSql() ?? "" : "") .

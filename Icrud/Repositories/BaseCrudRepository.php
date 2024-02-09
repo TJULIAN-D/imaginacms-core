@@ -66,5 +66,11 @@ interface BaseCrudRepository extends BaseRepository
    */
   public function bulkUpdate($data, $params = false);
 
+  /**
+   * @param $data
+   * @param $params
+   * @return mixed
+   */
+  public function bulkCreate($data);
 
 }
