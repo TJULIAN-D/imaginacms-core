@@ -32,11 +32,11 @@ class CrudResource extends JsonResource
   {
     $response = []; //Default Response
     $translatableAttributes = $this->translatedAttributes ?? [];//Get translatable attributes
-    $attributes = method_exists($this->resource,"getFillables") ?
-     $this->resource->getFillables() : [];//Get all fillable attributes, just for model that extends CrudModel
-  
-    $attributes = array_merge($attributes,array_keys($this->getAttributes())); //get Attributes add extras non fillables attributes
-    
+    $attributes = method_exists($this->resource, "getFillables") ?
+      $this->resource->getFillables() : [];//Get all fillable attributes, just for model that extends CrudModel
+
+    $attributes = array_merge($attributes, array_keys($this->getAttributes())); //get Attributes add extras non fillables attributes
+
     $filter = json_decode($request->filter);//Get request Filters
     $languages = \LaravelLocalization::getSupportedLocales();// Get site languages
     $excludeRelations = ['translations'];//No self-load this relations
@@ -66,14 +66,6 @@ class CrudResource extends JsonResource
       }
     }
 
-    //Add media Files relation
-    if (method_exists($this->resource, 'mediaFiles')) $response['mediaFiles'] = $this->mediaFiles();
-
-    //Add Revision relation
-    if (method_exists($this->resource, 'revisions')) {
-      $response['revisions'] = RevisionTransformer::collection($this->whenLoaded('revisions'));
-    }
-
     //Transform relations.
     foreach ($this->getRelations() as $relationName => $relation) {
       if (!in_array($relationName, $excludeRelations)) {
@@ -88,28 +80,36 @@ class CrudResource extends JsonResource
         }
         //Format files relations
         if (($relationName == 'files') && method_exists($this->resource, 'mediaFiles')) {
+          //Add files relations
           $response["files"] = MediaTransformer::collection($this->files);
+          //Add media Files
+          if (method_exists($this->resource, 'mediaFiles')) $response['mediaFiles'] = $this->mediaFiles();
+          //Add media Fields to model
+          if (method_exists($this->resource, 'getMediaFields')) {
+            $response = array_merge($response, $this->getMediaFields());
+          }
         }
-
+        //Add Revision relation
+        if (($relationName == 'revisions') && method_exists($this->resource, 'revisions')) {
+          $response['revisions'] = RevisionTransformer::collection($this->whenLoaded('revisions'));
+        }
       }
     }
 
-    
-    
-    
+
     //Add magic attributes
-    foreach (get_class_methods($this->resource) as $methodName){
+    foreach (get_class_methods($this->resource) as $methodName) {
       // if the method starts with get and ends with Attribute
       // excepting base method "getAttribute"
-      if(Str::startsWith($methodName, "get") && Str::endsWith($methodName, "Attribute")
-        && $methodName != "getAttribute"){
-        
+      if (Str::startsWith($methodName, "get") && Str::endsWith($methodName, "Attribute")
+        && $methodName != "getAttribute") {
+
         //removing "get" and "Attribute" to get the real attribute name
-        $attributeName = Str::replace(["get", "Attribute"], ["",""],$methodName);
-        
+        $attributeName = Str::replace(["get", "Attribute"], ["", ""], $methodName);
+
         //avoid the magic methods of the fillables
-        if(!in_array(Str::snake($attributeName), $attributes)){
-            $response[Str::camel($attributeName)] = $this->{$methodName}();
+        if (!in_array(Str::snake($attributeName), $attributes)) {
+          $response[Str::camel($attributeName)] = $this->{$methodName}();
         }
       }
     }
