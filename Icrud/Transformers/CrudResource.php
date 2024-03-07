@@ -93,6 +93,10 @@ class CrudResource extends JsonResource
         if (($relationName == 'revisions') && method_exists($this->resource, 'revisions')) {
           $response['revisions'] = RevisionTransformer::collection($this->whenLoaded('revisions'));
         }
+        //Add Tags Relation | Return only the names of tags as array
+        if (($relationName == 'tags') && method_exists($this->resource, 'getNameTags')) {
+          $response['tags'] = $this->getNameTags();
+        }
       }
     }
 
