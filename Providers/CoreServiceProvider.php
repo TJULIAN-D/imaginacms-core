@@ -2,7 +2,6 @@
 
 namespace Modules\Core\Providers;
 
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
@@ -24,6 +23,8 @@ use Modules\Core\Foundation\Theme\ThemeManager;
 use Modules\Core\Traits\CanGetSidebarClassForModule;
 use Modules\Core\Traits\CanPublishConfiguration;
 use Nwidart\Modules\Module;
+use Modules\Core\Icrud\Routing\RouterGenerator;
+use Illuminate\Database\Schema\Blueprint;
 
 class CoreServiceProvider extends ServiceProvider
 {
@@ -233,8 +234,8 @@ class CoreServiceProvider extends ServiceProvider
     {
         $moduleName = $module->getLowerName();
 
-        $langPath = base_path("lang/$moduleName");
-        $secondPath = base_path("lang/translation/$moduleName");
+    $langPath = base_path("resources/lang/$moduleName");
+    $secondPath = base_path("resources/lang/translation/$moduleName");
 
         if ($moduleName !== 'translation' && $this->hasPublishedTranslations($langPath)) {
             return $this->loadTranslationsFrom($langPath, $moduleName);
@@ -257,83 +258,89 @@ class CoreServiceProvider extends ServiceProvider
         return preg_replace('/\\.[^.\\s]{3,4}$/', '', basename($file));
     }
 
-    /**
-     * Set the locale configuration for
-     * - laravel localization
-     * - laravel translatable
-     */
-    private function setLocalesConfigurations()
-    {
-        if ($this->app['asgard.isInstalled'] === false) {
-            return;
-        }
-
-        //I have to put this validation because our default supportedLocales are (en and es)
-        //and we have a lot seeders setting in DB that two locales in the DB, so it was more easy set here the exception
-        // to avoid set locales conf only when the console command is module:seed but we need to improve the seeders for a
-        // dynamic locales seeders by example: Modules/Iblog/Database/Seeders/LayoutsBlogTableSeeder.php
-        if (app()->runningInConsole()) {
-            $command = request()->server('argv');
-
-            if (is_array($command) && isset($command[1]) && $command[1] == 'module:seed') {
-                return;
-            }
-        }
-
-        $localeConfig = $this->app['cache']
-          ->tags('setting.settings'.(tenant()->id ?? ''), 'global')
-          ->remember(
-              'asgard.locales',
-              120,
-              function () {
-                  return DB::table('setting__settings')->whereName('core::locales')->first();
-              }
-          );
-
-        if ($localeConfig) {
-            $locales = json_decode($localeConfig->plainValue);
-            $availableLocales = [];
-            foreach ($locales as $locale) {
-                $availableLocales = array_merge($availableLocales, [$locale => config("available-locales.$locale")]);
-            }
-
-            $laravelDefaultLocale = $this->app->config->get('app.locale');
-
-            if (! in_array($laravelDefaultLocale, array_keys($availableLocales))) {
-                $this->app->config->set('app.locale', array_keys($availableLocales)[0]);
-            }
-
-            //domains locales configuration. Based in the config domainsLocales{app_env}
-            $configName = 'domainsLocales';
-
-            (env('APP_ENV', 'local') == 'local') ? $configName .= 'Local' : $configName .= 'Prod';
-
-            $domainsLocales = config("asgard.core.config.$configName");
-            $domainLocaleFounded = false;
-            $host = $this->app->request->getHost();
-
-            foreach ($domainsLocales ?? [] as $locale => $domains) {
-                foreach ($domains as $domain) {
-                    if ($host == $domain && ! $domainLocaleFounded) {
-                        $domainLocaleFounded = true;
-
-                        $this->app->config->set('laravellocalization.supportedLocales', [$locale => config("available-locales.$locale")]);
-                        $this->app->config->set('translatable.locales', [$locale]);
-
-                        config(['app.url' => 'https://'.$host]);
-                        config(['app.locale' => $locale]);
-                        \LaravelLocalization::setLocale($locale);
-                        app('laravellocalization')->defaultLocale = $locale;
-                    }
-                }
-            }
-
-            if (! $domainLocaleFounded) {
-                $this->app->config->set('laravellocalization.supportedLocales', $availableLocales);
-                $this->app->config->set('translatable.locales', $locales);
-            }
-        }
+  /**
+   * Set the locale configuration for
+   * - laravel localization
+   * - laravel translatable
+   */
+  private function setLocalesConfigurations()
+  {
+    if ($this->app['asgard.isInstalled'] === false) {
+      return;
     }
+
+    //I have to put this validation because our default supportedLocales are (en and es)
+    //and we have a lot seeders setting in DB that two locales in the DB, so it was more easy set here the exception
+    // to avoid set locales conf only when the console command is module:seed but we need to improve the seeders for a
+    // dynamic locales seeders by example: Modules/Iblog/Database/Seeders/LayoutsBlogTableSeeder.php
+    if(app()->runningInConsole()){
+      $command = request()->server('argv');
+
+      if (is_array($command) && isset($command[1]) && $command[1]=="module:seed") {
+        return;
+      }
+    }
+
+    $localeConfig = $this->app['cache']
+      ->tags('setting.settings'.(tenant()->id ?? ""), 'global')
+      ->remember(
+        'asgard.locales',
+        120,
+        function () {
+          return DB::table('setting__settings')->whereName('core::locales')->first();
+        }
+      );
+
+    if ($localeConfig) {
+      $locales = json_decode($localeConfig->plainValue);
+      $availableLocales = [];
+      foreach ($locales as $locale) {
+        $availableLocales = array_merge($availableLocales, [$locale => config("available-locales.$locale")]);
+      }
+
+      $laravelDefaultLocale = $this->app->config->get('app.locale');
+
+      if (!in_array($laravelDefaultLocale, array_keys($availableLocales))) {
+        $this->app->config->set('app.locale', array_keys($availableLocales)[0]);
+      }
+
+      //domains locales configuration. Based in the config domainsLocales{app_env}
+      $configName = "domainsLocales";
+
+      (env('APP_ENV', 'local') == 'local') ? $configName .= "Local" : $configName .= "Prod";
+
+      $domainsLocales = config("asgard.core.config.$configName");
+      $domainLocaleFounded = false;
+      $host = $this->app->request->getHost();
+
+      foreach ($domainsLocales ?? [] as $locale => $domains) {
+
+        foreach ($domains as $domain) {
+
+          if ($host == $domain && !$domainLocaleFounded) {
+            $domainLocaleFounded = true;
+
+            $this->app->config->set('laravellocalization.supportedLocales', [$locale => config("available-locales.$locale")]);
+            $this->app->config->set('translatable.locales', [$locale]);
+
+            config(["app.url" => "https://" . $host]);
+            config(["app.locale" => $locale]);
+            \LaravelLocalization::setLocale($locale);
+            app('laravellocalization')->defaultLocale = $locale;
+
+          }
+
+        }
+
+      }
+
+      if (!$domainLocaleFounded) {
+        $this->app->config->set('laravellocalization.supportedLocales', $availableLocales);
+        $this->app->config->set('translatable.locales', $locales);
+      }
+
+    }
+  }
 
     private function hasPublishedTranslations(string $path): bool
     {

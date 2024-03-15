@@ -147,13 +147,16 @@ trait AuditTrait
         return "Modules\\User\\Entities\\{$driver}\\User";
     }
 
-    /**
-     * Check if we're maintaing Userstamps on the model.
-     */
-    public function isUserstamping()
-    {
-        return $this->userstamping;
-    }
+  /**
+   * Check if we're maintaing Userstamps on the model.
+   *
+   * @return bool
+   */
+  public function isUserstamping()
+  {
+    $this->userstamping = config("asgard.core.config.userstamping");
+    return $this->userstamping;
+  }
 
     /**
      * Check if we're maintaing Userstamps on the model.
