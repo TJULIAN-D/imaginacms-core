@@ -49,8 +49,11 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
   public function getOrCreateQuery($params, $criteria = null)
   {
+    //save parameters validate use of old query
+    $this->params = $params;
 
     if (!empty($params)) {
+      $params = (object)$params;
       $cloneParams = clone $params;
       $cloneParams->returnAsQuery = true;
     } else $cloneParams = (object)["returnAsQuery" => true];
@@ -59,9 +62,6 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       $this->query = $this->getItemsBy($cloneParams);
     else
       $this->query = $this->getItem($criteria, $cloneParams);
-
-    //save parameters validate use of old query
-    $this->params = $params;
 
     return $this->query;
   }
