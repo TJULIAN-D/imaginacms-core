@@ -22,7 +22,7 @@ class ModuleSeeders implements SetupScript
         'Iprofile',
         'Isite',
         'Notification',
-      'Igamification',
+        'Igamification',
       
     ];
 

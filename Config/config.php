@@ -28,7 +28,7 @@ return [
         'ibuilder',
         'ilocations',
         'igamification',
-      
+        'iqreable'
     ],
 
     /*

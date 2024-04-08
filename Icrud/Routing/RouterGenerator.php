@@ -2,8 +2,11 @@
 
 namespace Modules\Core\Icrud\Routing;
 
-use Illuminate\Http\Request;
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Routing\Router;
+use Illuminate\Http\Request;
+
 //Controllers
 use Modules\Core\Icrud\Controllers\BaseCrudController;
 
@@ -27,13 +30,25 @@ class RouterGenerator
         $crudRoutes = isset($params['staticEntity']) ? $this->getStaticApiRoutes($params) :
           $crudRoutes = $this->getStandardApiRoutes($params);
 
-        //Generate routes
-        $this->router->group(['prefix' => $params['prefix']], function (Router $router) use ($crudRoutes) {
-            foreach ($crudRoutes as $route) {
-                $router->match($route->method, $route->path, $route->actions);
-            }
-        });
-    }
+    //Generate routes
+    $this->router->group(['prefix' => $params['prefix']], function (Router $router) use ($crudRoutes, $params) {
+      foreach ($crudRoutes as $route) {
+        $router->match($route->method, $route->path, $route->actions);
+      }
+      //Load the customRoutes
+      if (isset($params['customRoutes'])) {
+        foreach ($params['customRoutes'] as $route) {
+          if (isset($route['method']) && isset($route['path']) && isset($route['uses'])) {
+            $router->match($route['method'], $route['path'], [
+              'as' => "api.{$params['module']}.{$params['prefix']}.{$route['uses']}",
+              'uses' => $params['controller'] . "@" . $route['uses'],
+              'middleware' => $route['middleware'] ?? ['auth:api']
+            ]);
+          }
+        }
+      }
+    });
+  }
 
     /**
      * Return routes to standar API

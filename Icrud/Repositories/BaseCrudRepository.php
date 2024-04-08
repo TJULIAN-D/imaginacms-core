@@ -2,6 +2,7 @@
 
 namespace Modules\Core\Icrud\Repositories;
 
+use Illuminate\Database\Eloquent\Builder;
 use Modules\Core\Repositories\BaseRepository;
 
 /**
@@ -34,8 +35,24 @@ interface BaseCrudRepository extends BaseRepository
      */
     public function deleteBy($criteria, $params = false);
 
-    /**
-     * @return mixed
-     */
-    public function restoreBy($criteria, $params = false);
+  /**
+   * @return mixed
+   */
+  public function restoreBy($criteria, $params = false);
+
+  /**
+   * @return mixed
+   */
+  public function bulkOrder($data, $params = false);
+
+  /**
+   * @return mixed
+   */
+  public function bulkUpdate($data, $params = false);
+
+  /**
+   * @return mixed
+   */
+  public function bulkCreate($data);
+
 }

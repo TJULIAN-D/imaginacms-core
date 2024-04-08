@@ -29,7 +29,8 @@ class ModuleMigrator implements SetupScript
         'Iprofile',
         'Ilocations',
         'Iredirect',
-      'Igamification',
+        'Igamification',
+        'iqreable'
       
     ];
 
