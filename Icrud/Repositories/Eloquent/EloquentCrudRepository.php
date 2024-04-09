@@ -36,6 +36,12 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   protected $query = null;
 
   /**
+   * parameter to validate use of old query
+   * @var null
+   */
+  protected $params = null;
+
+  /**
    * Attribute to define default relations
    * all apply to getItemsBy and getItem
    * index apply in the getItemsBy
@@ -45,22 +51,25 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   protected $with = [/*all => [] ,index => [],show => []*/];
 
 
-  public function getOrCreateQuery($params, $criteria = null){
-    
-    if(!empty($params)) {
+  public function getOrCreateQuery($params, $criteria = null)
+  {
+    //save parameters validate use of old query
+    $this->params = $params;
+
+    if (!empty($params)) {
+      $params = (object)$params;
       $cloneParams = clone $params;
       $cloneParams->returnAsQuery = true;
-    }
-    else $cloneParams = (object)["returnAsQuery" => true];
+    } else $cloneParams = (object)["returnAsQuery" => true];
 
-    if(is_null($criteria))
+    if (is_null($criteria))
       $this->query = $this->getItemsBy($cloneParams);
     else
       $this->query = $this->getItem($criteria, $cloneParams);
-  
+
     return $this->query;
   }
-  
+
   /**
    * Method to include relations to query
    * @param $query
@@ -293,9 +302,10 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    */
   public function getItemsBy($params)
   {
+    // compare parameters validate use of old query
+    $differentParameters = $this->compareParameters($params);
     //reusing query if exist
-    if (empty($this->query)) {
-
+    if (empty($this->query || $differentParameters)) {
       //Instance Query
       $query = $this->model->query();
 
@@ -368,6 +378,8 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       $query = $this->orderQuery($query, $params->order ?? true, $filters->noSortOrder ?? false);
 
     } else {
+      //save parameters validate use of old query
+      $this->params = $params;
       //reusing query if exist
       $query = $this->query;
     }
@@ -402,9 +414,10 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    */
   public function getItem($criteria, $params = false)
   {
-
+    // compare parameters validate use of query
+    $differentParameters = $this->compareParameters($params);
     //reusing query if exist
-    if (empty($this->query)) {
+    if (empty($this->query || $differentParameters)) {
 
       //Instance Query
       $query = $this->model->query();
@@ -415,8 +428,10 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       //Check field name to criteria
       if (isset($params->filter->field)) $field = $params->filter->field;
 
+
       // find translatable attributes
       $translatedAttributes = $this->model->translatedAttributes ?? [];
+
 
       // filter by translatable attributes
       if (isset($field) && in_array($field, $translatedAttributes)) {//Filter by slug
@@ -497,7 +512,8 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     if (isset($params->filter->field)) $field = $params->filter->field;
 
     //get model and update
-    if ($model = $query->where($field ?? 'id', $criteria)->first()) {
+    $model = $query->where($field ?? 'id', $criteria)->first();
+    if (isset($model)) {
       $this->beforeUpdate($data);
       //Update Model
       $model->update((array)$data);
@@ -736,4 +752,17 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       }
     }
   }
+
+  /**
+   * Function to validate parameters
+   *
+   * @param $params
+   */
+  private function compareParameters($params): bool
+  {
+    $newParams = json_encode($params);
+    $queryParams = json_encode($this->params);
+    return $newParams != $queryParams;;
+  }
+
 }
