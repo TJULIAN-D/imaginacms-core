@@ -305,7 +305,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     // compare parameters validate use of old query
     $differentParameters = $this->compareParameters($params);
     //reusing query if exist
-    if (empty($this->query || $differentParameters)) {
+    if (empty($this->query) || $differentParameters) {
       //Instance Query
       $query = $this->model->query();
 
@@ -417,7 +417,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     // compare parameters validate use of query
     $differentParameters = $this->compareParameters($params);
     //reusing query if exist
-    if (empty($this->query || $differentParameters)) {
+    if (empty($this->query) || $differentParameters) {
 
       //Instance Query
       $query = $this->model->query();
