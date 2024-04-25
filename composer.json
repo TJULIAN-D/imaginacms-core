@@ -30,7 +30,7 @@
     "imagina/stylist": "^4.0",
     "imagina/laravel-sidebar": "^3.1",
     "yajra/laravel-datatables-oracle": "^10.4",
-    "tightenco/ziggy": "^1.5"
+    "tightenco/ziggy": "^2.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^10",
