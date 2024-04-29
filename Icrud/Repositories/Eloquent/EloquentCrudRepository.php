@@ -2,13 +2,17 @@
 
 namespace Modules\Core\Icrud\Repositories\Eloquent;
 
-use Modules\Core\Icrud\Repositories\BaseCrudRepository;
 use Modules\Core\Repositories\Eloquent\EloquentBaseRepository;
+use Modules\Core\Icrud\Repositories\BaseCrudRepository;
+
 use Modules\Ihelpers\Events\CreateMedia;
+use Modules\Ihelpers\Events\DeleteMedia;
 use Modules\Ihelpers\Events\UpdateMedia;
 
 /**
  * Class EloquentCrudRepository
+ *
+ * @package Modules\Core\Repositories\Eloquent
  */
 abstract class EloquentCrudRepository extends EloquentBaseRepository implements BaseCrudRepository
 {
@@ -161,8 +165,13 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @param $query
    * @param $filter
    */
-  public function orderQuery($query, $order, $noSortOrder)
+  public function orderQuery($query, $order, $noSortOrder, $orderByRaw)
   {
+    //allow order by raw with skipping tags
+    if(!empty($orderByRaw)){
+      $orderByRaw = strip_tags($orderByRaw);
+      return $query->orderByRaw($orderByRaw);
+    }
     //Verify if the model has sort_order column and ordering by that column by default
     $modelFields = $this->model->getFillable();
 
@@ -371,7 +380,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       }
 
       //Order Query
-      $query = $this->orderQuery($query, $params->order ?? true, $filters->noSortOrder ?? false);
+      $query = $this->orderQuery($query, $params->order ?? true, $filters->noSortOrder ?? false, $params->orderByRaw ?? null);
 
     } else {
       //save parameters validate use of old query
