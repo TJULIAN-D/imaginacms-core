@@ -380,7 +380,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       }
 
       //Order Query
-      $query = $this->orderQuery($query, $params->order ?? true, $filters->noSortOrder ?? false, $params->orderByRaw ?? true);
+      $query = $this->orderQuery($query, $params->order ?? true, $filters->noSortOrder ?? false, $params->orderByRaw ?? null);
 
     } else {
       //save parameters validate use of old query
