@@ -165,8 +165,13 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @param $query
    * @param $filter
    */
-  public function orderQuery($query, $order, $noSortOrder)
+  public function orderQuery($query, $order, $noSortOrder, $orderByRaw)
   {
+    //allow order by raw with skipping tags
+    if(!empty($orderByRaw)){
+      $orderByRaw = strip_tags($orderByRaw);
+      return $query->orderByRaw($orderByRaw);
+    }
     //Verify if the model has sort_order column and ordering by that column by default
     $modelFields = $this->model->getFillable();
 
@@ -175,7 +180,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
     $orderField = $order->field ?? 'created_at';//Default field
     $orderWay = $order->way ?? 'desc';//Default way
-
+    
     //Set order to query
     if (in_array($orderField, ($this->model->translatedAttributes ?? []))) {
       $query->orderByTranslation($orderField, $orderWay);
@@ -375,7 +380,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       }
 
       //Order Query
-      $query = $this->orderQuery($query, $params->order ?? true, $filters->noSortOrder ?? false);
+      $query = $this->orderQuery($query, $params->order ?? true, $filters->noSortOrder ?? false, $params->orderByRaw ?? true);
 
     } else {
       //save parameters validate use of old query
