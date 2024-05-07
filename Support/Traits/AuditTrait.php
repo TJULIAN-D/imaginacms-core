@@ -158,11 +158,40 @@ trait AuditTrait
     return $this->userstamping;
   }
 
-    /**
-     * Check if we're maintaing Userstamps on the model.
-     */
-    public function isSoftDeleting()
-    {
-        return true; //$this->softdeleting ?? false;
-    }
+  /**
+   * Check if we're maintaing Userstamps on the model.
+   *
+   * @return bool
+   */
+  public function isSoftDeleting()
+  {
+    return config("asgard.isite.config.isSoftDeleting") ?? true;
+  }
+
+  /**
+   * Get a new query builder that includes soft deleted models.
+   * TODO: This is while exist flow to handled softDelete
+   * @return \Illuminate\Database\Eloquent\Builder|static
+   */
+  public function newQuery($excludeDeleted = true)
+  {
+    $builder = parent::newQuery($excludeDeleted);
+
+    // If soft deletes are disabled, include trashed records in the default query
+    if (!$this->isSoftDeleting()) $builder->withTrashed();
+
+    return $builder;
+  }
+
+  /**
+   * Perform the actual delete query on this model instance.
+   * TODO: This is while exist flow to handled softDelete
+   * @return void
+   */
+  public function delete()
+  {
+    if ($this->isSoftDeleting()) return parent::delete();
+    //Force Delete
+    return \DB::table($this->getTable())->where($this->getKeyName(), $this->getKey())->delete();
+  }
 }
