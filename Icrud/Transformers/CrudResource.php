@@ -14,6 +14,12 @@ use  Modules\Isite\Transformers\RevisionTransformer;
 class CrudResource extends JsonResource
 {
   /**
+   * Attribute to exclude relations from transformed data
+   * @var array
+   */
+  protected $excludeRelations = [];
+
+  /**
    * Method to merge values to response
    *
    * @return array
@@ -39,7 +45,7 @@ class CrudResource extends JsonResource
 
     $filter = json_decode($request->filter);//Get request Filters
     $languages = \LaravelLocalization::getSupportedLocales();// Get site languages
-    $excludeRelations = ['translations'];//No self-load this relations
+    $excludeRelations = array_merge(['translations'], $this->excludeRelations);//No self-load this relations
 
     //Add attributes
     foreach ($attributes as $fieldName) {
