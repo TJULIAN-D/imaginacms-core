@@ -23,7 +23,6 @@ class ModuleMigrator implements SetupScript
         'Translation',
         'Slider',
         'Tag',
-        'Ibanners',
         'Iblog',
         'Iforms',
         'Iprofile',

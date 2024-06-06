@@ -28,7 +28,10 @@ return [
         'ibuilder',
         'ilocations',
         'igamification',
-        'iqreable'
+        'iqreable',
+        'slider',
+        'iblog',
+        'iredirect'
     ],
 
     /*

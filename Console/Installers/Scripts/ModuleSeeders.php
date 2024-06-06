@@ -16,7 +16,6 @@ class ModuleSeeders implements SetupScript
         'Ischedulable',
         'Setting',
         'Page',
-        'Ibanners',
         'Iblog',
         'Ilocations',
         'Iprofile',
