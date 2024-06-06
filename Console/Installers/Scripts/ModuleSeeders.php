@@ -22,6 +22,9 @@ class ModuleSeeders implements SetupScript
         'Isite',
         'Notification',
         'Igamification',
+        'Slider',
+        'Iredirect',
+        'Iqreable'
       
     ];
 
