@@ -59,8 +59,6 @@ class SentinelInstaller extends ProviderInstaller implements SetupScript
             'Sentinel'
         );
 
-        $this->changeDefaultUserProvider('Sentinel');
-
         $this->bindUserRepositoryOnTheFly('Sentinel');
     }
 
@@ -84,14 +82,4 @@ class SentinelInstaller extends ProviderInstaller implements SetupScript
         return $password;
     }
 
-    /**
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
-     */
-    private function changeDefaultUserProvider($driver)
-    {
-        $path = base_path('config/asgard/user/config.php');
-        $config = $this->finder->get($path);
-        $config = str_replace('Sentry', $driver, $config);
-        $this->finder->put($path, $config);
-    }
 }
