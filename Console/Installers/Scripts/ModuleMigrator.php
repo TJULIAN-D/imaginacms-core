@@ -7,6 +7,14 @@ use Modules\Core\Console\Installers\SetupScript;
 
 class ModuleMigrator implements SetupScript
 {
+
+  /**
+   * @var array
+   */
+  protected $notMigrate = [
+    'ihelpers'
+  ];
+
   /**
    * Fire the install script
    *
@@ -20,12 +28,14 @@ class ModuleMigrator implements SetupScript
 
     $modules = config('asgard.core.config.CoreModules');
     foreach ($modules as $module) {
-      if ($command->option('verbose')) {
-        $command->call('module:migrate', ['module' => $module]);
+      if (!in_array($module, $this->notMigrate)) {
+        if ($command->option('verbose')) {
+          $command->call('module:migrate', ['module' => $module]);
 
-        continue;
+          continue;
+        }
+        $command->callSilent('module:migrate', ['module' => $module]);
       }
-      $command->callSilent('module:migrate', ['module' => $module]);
     }
   }
 }
