@@ -7,33 +7,25 @@ use Modules\Core\Console\Installers\SetupScript;
 
 class ModuleAssets implements SetupScript
 {
-    /**
-     * @var array
-     */
-    protected $modules = [
-        'Core',
-        'Media',
-        'Menu',
-    ];
-
-    /**
-     * Fire the install script
-     *
-     * @return mixed
-     */
-    public function fire(Command $command)
-    {
-        if ($command->option('verbose')) {
-            $command->blockMessage('Module assets', 'Publishing module assets ...', 'comment');
-        }
-
-        foreach ($this->modules as $module) {
-            if ($command->option('verbose')) {
-                $command->call('module:publish', ['module' => $module]);
-
-                continue;
-            }
-            $command->callSilent('module:publish', ['module' => $module]);
-        }
+  /**
+   * Fire the install script
+   *
+   * @return mixed
+   */
+  public function fire(Command $command)
+  {
+    if ($command->option('verbose')) {
+      $command->blockMessage('Module assets', 'Publishing module assets ...', 'comment');
     }
+
+    $modules = config('asgard.core.config.CoreModules');
+    foreach ($modules as $module) {
+      if ($command->option('verbose')) {
+        $command->call('module:publish', ['module' => $module]);
+
+        continue;
+      }
+      $command->callSilent('module:publish', ['module' => $module]);
+    }
+  }
 }
