@@ -31,7 +31,8 @@ return [
         'iqreable',
         'slider',
         'iblog',
-        'iredirect'
+        'iredirect',
+        'isearch'
     ],
 
     /*
