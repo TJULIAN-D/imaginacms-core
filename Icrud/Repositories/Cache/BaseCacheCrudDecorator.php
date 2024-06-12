@@ -72,7 +72,7 @@ abstract class BaseCacheCrudDecorator extends BaseCacheDecorator implements Base
   }
   public function createKey($query, $params){
 
-      return str_replace(["\"","`","{","}"],"",(($query ? $query->toSql() ?? "" : "") .
+      $cacheKey = str_replace(["\"","`","{","}"],"",(($query ? $query->toSql() ?? "" : "") .
         (\serialize($query ? $query->getBindings() ?? "" : "") ).
         (!empty($params->filter) ? \serialize($params->filter) : "") .
         (!empty($params->order) ? \serialize($params->order) : "")  .
@@ -80,6 +80,6 @@ abstract class BaseCacheCrudDecorator extends BaseCacheDecorator implements Base
         (!empty($params->page) ? \serialize($params->page) : "")  .
         (!empty($params->take) ? \serialize($params->take) : "") ));
 
-
+      return hash('sha256', $cacheKey);
   }
 }
