@@ -33,6 +33,10 @@ abstract class BaseCacheDecorator implements BaseRepository
      * @var string The application locale
      */
     protected $locale;
+    /**
+     * @var string The application locale
+     */
+    protected $tags;
 
     public function __construct()
     {
