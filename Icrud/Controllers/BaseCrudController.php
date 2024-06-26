@@ -57,7 +57,7 @@ class BaseCrudController extends BaseApiController
             $models = $this->modelRepository->getItemsBy($params);
 
             //Response
-            $response = ['data' => CrudResource::transformData($models)];
+            $response = ['data' => $this->modelRepository->getItemsByTransformed($models, $params)];
 
             //If request pagination add meta-page
             $params->page ? $response['meta'] = ['page' => $this->pageTransformer($models)] : false;
@@ -67,7 +67,7 @@ class BaseCrudController extends BaseApiController
         }
 
         //Return response
-        return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+        return response($response ?? ['data' => 'Request successful'], $status ?? 200);
     }
 
     /**

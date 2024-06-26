@@ -4,6 +4,7 @@ namespace Modules\Core\Icrud\Repositories\Eloquent;
 
 use Modules\Core\Repositories\Eloquent\EloquentBaseRepository;
 use Modules\Core\Icrud\Repositories\BaseCrudRepository;
+use Modules\Core\Icrud\Transformers\CrudResource;
 
 use Modules\Ihelpers\Events\CreateMedia;
 use Modules\Ihelpers\Events\DeleteMedia;
@@ -16,758 +17,763 @@ use Modules\Ihelpers\Events\UpdateMedia;
  */
 abstract class EloquentCrudRepository extends EloquentBaseRepository implements BaseCrudRepository
 {
-  /**
-   * Filter name to replace
-   * @var array
-   */
-  protected $replaceFilters = [];
-
-  /**
-   * Relation name to replace
-   * @var array
-   */
-  protected $replaceSyncModelRelations = [];
-
-
-  /**
-   * Query where to save the current query
-   * @var null
-   */
-  protected $query = null;
-
-  /**
-   * parameter to validate use of old query
-   * @var null
-   */
-  protected $params = null;
-
-  /**
-   * Attribute to define default relations
-   * all apply to getItemsBy and getItem
-   * index apply in the getItemsBy
-   * show apply in the getItem
-   * @var array
-   */
-  protected $with = [/*all => [] ,index => [],show => []*/];
-
-
-  public function getOrCreateQuery($params, $criteria = null)
-  {
-    //save parameters validate use of old query
-    $this->params = $params;
-
-    if (!empty($params)) {
-      $params = (object)$params;
-      $cloneParams = clone $params;
-      $cloneParams->returnAsQuery = true;
-    } else $cloneParams = (object)["returnAsQuery" => true];
-
-    if (is_null($criteria))
-      $this->query = $this->getItemsBy($cloneParams);
-    else
-      $this->query = $this->getItem($criteria, $cloneParams);
-
-    return $this->query;
-  }
-
-  /**
-   * Method to include relations to query
-   * @param $query
-   * @param $relations
-   */
-  public function includeToQuery($query, $relations, $method = null)
-  {
-    //request all categories instances in the "relations" attribute in the entity model
-    if (in_array('*', $relations)) $relations = $this->model->getRelations() ?? [];
-    else { // Set default Relations
-      $relations = array_merge($relations, ($this->with['all'] ?? [])); // Include all default relations
-      if ($method == 'show') $relations = array_merge($relations, ($this->with['show'] ?? [])); // include show default relations
-      if ($method == 'index') $relations = array_merge($relations, ($this->with['index'] ?? [])); // include index default reltaion
-    }
-    //Instance relations in query
-    $query->with(array_unique($relations));
-    //Response
-    return $query;
-  }
-
-  /**
-   * Method to set default model filters by attributes
-   *
-   * @param $query
-   * @param $filter
-   * @param $fieldName
-   * @return mixed
-   */
-  public function setFilterQuery($query, $filterData, $fieldName)
-  {
-    $filterWhere = $filterData->where ?? null;//Get filter where condition
-    $filterOperator = $filterData->operator ?? '=';// Get filter operator
-    $filterValue = $filterData->value ?? $filterData;//Get filter value
-
-    //Set where condition
-    if ($filterWhere == 'in') {
-      $query->whereIn($fieldName, $filterValue);
-    } else if ($filterWhere == 'notIn') {
-      $query->whereNotIn($fieldName, $filterValue);
-    } else if ($filterWhere == 'between') {
-      $query->whereBetween($fieldName, $filterValue);
-    } else if ($filterWhere == 'notBetween') {
-      $query->whereNotBetween($fieldName, $filterValue);
-    } else if ($filterWhere == 'null') {
-      $query->whereNull($fieldName);
-    } else if ($filterWhere == 'notNull') {
-      $query->whereNotNull($fieldName);
-    } else if ($filterWhere == 'date') {
-      $query->whereDate($fieldName, $filterOperator, $filterValue);
-    } else if ($filterWhere == 'year') {
-      $query->whereYear($fieldName, $filterOperator, $filterValue);
-    } else if ($filterWhere == 'month') {
-      $query->whereMonth($fieldName, $filterOperator, $filterValue);
-    } else if ($filterWhere == 'day') {
-      $query->whereDay($fieldName, $filterOperator, $filterValue);
-    } else if ($filterWhere == 'time') {
-      $query->whereTime($fieldName, $filterOperator, $filterValue);
-    } else if ($filterWhere == 'column') {
-      $query->whereColumn($fieldName, $filterOperator, $filterValue);
-    } else if ($filterWhere == 'orWhere') {
-      $query->orWhere($fieldName, $filterOperator, $filterValue);
-    } else if ($filterWhere == 'belongsToMany') {
-      //Sub query to get data by pivot
-      $query->whereIn('id', function ($q) use ($filterData, $filterValue) {
-        //validate filter value
-        if (!is_array($filterValue)) $filterValue = [$filterValue];
-        //filter sub query
-        $q->select($filterData->foreignPivotKey)->from($filterData->table)
-          ->whereIn($filterData->relatedPivotKey, $filterValue);
-      });
-    } else {
-      $query->where($fieldName, $filterOperator, $filterValue);
-    }
-
-    //Response
-    return $query;
-  }
-
-  /**
-   * Method to filter query
-   * @param $query
-   * @param $filter
-   * @param $params
-   */
-  public function filterQuery($query, $filter, $params)
-  {
-    return $query;
-  }
-
-  /**
-   * Method to order Query
-   *
-   * @param $query
-   * @param $filter
-   */
-  public function orderQuery($query, $order, $noSortOrder, $orderByRaw)
-  {
-    //allow order by raw with skipping tags
-    if(!empty($orderByRaw)){
-      $orderByRaw = strip_tags($orderByRaw);
-      return $query->orderByRaw($orderByRaw);
-    }
-    //Verify if the model has sort_order column and ordering by that column by default
-    $modelFields = $this->model->getFillable();
-
-    //Include sort_order filter by default
-    if (in_array('sort_order', $modelFields) && !$noSortOrder) $query->orderByRaw('COALESCE(sort_order, 0) desc');
-
-    $orderField = $order->field ?? 'created_at';//Default field
-    $orderWay = $order->way ?? 'desc';//Default way
-
-    //Set order to query
-    if (in_array($orderField, ($this->model->translatedAttributes ?? []))) {
-      $query->orderByTranslation($orderField, $orderWay);
-    } else $query->orderBy($orderField, $orderWay);
-
-    //Return query with filters
-    return $query;
-  }
-
-  /**
-   * Method to sync Model Relations by default
-   *
-   * @param $model ,$data
-   * @return $model
-   */
-  public function defaultSyncModelRelations($model, $data)
-  {
-    foreach (($model->modelRelations ?? []) as $relationName => $relationType) {
-      // Check if exist relation in data
-      if (!in_array($relationName, $this->replaceSyncModelRelations) && array_key_exists($relationName, $data)) {
-        // Sync Has Many relation
-        if ($relationType == "hasMany") {
-          // Validate if exist relation with items
-          $model->$relationName()->forceDelete();
-          // Create and Set relation to Model
-          $model->setRelation($relationName, $model->$relationName()->createMany($data[$relationName]));
-        }
-
-        // Sync Belongs to many relation
-        if ($relationType == "belongsToMany") {
-          $model->$relationName()->sync($data[$relationName]);
-          $model->setRelation($relationName, $model->$relationName);
-        }
-      }
-    }
-
-    //Response
-    return $model;
-  }
-
-  /**
-   * Method to sync Model Relations
-   *
-   * @param $model ,$data
-   * @return $model
-   */
-  public function syncModelRelations($model, $data)
-  {
-    //Get model relations data from attribute of model
-    $modelRelationsData = ($model->modelRelations ?? []);
+    /**
+     * Filter name to replace
+     * @var array
+     */
+    protected $replaceFilters = [];
 
     /**
-     * Note: Add relation name to replaceSyncModelRelations attribute to replace it
-     *
-     * Example to sync relations
-     * if (array_key_exists(<relationName>, $data)){
-     *    $model->setRelation(<relationName>, $model-><relationName>()->sync($data[<relationName>]));
-     * }
-     *
+     * Relation name to replace
+     * @var array
      */
+    protected $replaceSyncModelRelations = [];
 
-    //Response
-    return $model;
-  }
 
-  /**
-   * Method to create model
-   *
-   * @param $data
-   * @return mixed
-   */
-  public function create($data)
-  {
-    //Event creating model
-    $this->dispatchesEvents(['eventName' => 'creating', 'data' => $data]);
+    /**
+     * Query where to save the current query
+     * @var null
+     */
+    protected $query = null;
 
-    // Call function before create it, and take all change from $data
-    $this->beforeCreate($data);
+    /**
+     * parameter to validate use of old query
+     * @var null
+     */
+    protected $params = null;
 
-    //Create model
-    $model = $this->model->create($data);
+    /**
+     * Attribute to define default relations
+     * all apply to getItemsBy and getItem
+     * index apply in the getItemsBy
+     * show apply in the getItem
+     * @var array
+     */
+    protected $with = [/*all => [] ,index => [],show => []*/];
 
-    // Default sync model relations
-    $model = $this->defaultSyncModelRelations($model, $data);
 
-    // Custom sync model relations
-    $model = $this->syncModelRelations($model, $data);
+    public function getOrCreateQuery($params, $criteria = null)
+    {
+        //save parameters validate use of old query
+        $this->params = $params;
 
-    // Call function after create it, and take all change from $data and $model
-    $this->afterCreate($model, $data);
+        if (!empty($params)) {
+            $params = (object)$params;
+            $cloneParams = clone $params;
+            $cloneParams->returnAsQuery = true;
+        } else $cloneParams = (object)["returnAsQuery" => true];
 
-    //Event created model
-    $this->dispatchesEvents(['eventName' => 'created', 'data' => $data, 'model' => $model]);
+        if (is_null($criteria))
+            $this->query = $this->getItemsBy($cloneParams);
+        else
+            $this->query = $this->getItem($criteria, $cloneParams);
 
-    //Response
-    return $model;
-  }
+        return $this->query;
+    }
 
-  /**
-   * Method to override in the child class if there need modify the data before create
-   * @param $data
-   * @return void
-   */
-  public function beforeCreate(&$data)
-  {
+    /**
+     * Method to include relations to query
+     * @param $query
+     * @param $relations
+     */
+    public function includeToQuery($query, $relations, $method = null)
+    {
+        //request all categories instances in the "relations" attribute in the entity model
+        if (in_array('*', $relations)) $relations = $this->model->getRelations() ?? [];
+        else { // Set default Relations
+            $relations = array_merge($relations, ($this->with['all'] ?? [])); // Include all default relations
+            if ($method == 'show') $relations = array_merge($relations, ($this->with['show'] ?? [])); // include show default relations
+            if ($method == 'index') $relations = array_merge($relations, ($this->with['index'] ?? [])); // include index default reltaion
+        }
+        //Instance relations in query
+        $query->with(array_unique($relations));
+        //Response
+        return $query;
+    }
 
-  }
+    /**
+     * Method to set default model filters by attributes
+     *
+     * @param $query
+     * @param $filter
+     * @param $fieldName
+     * @return mixed
+     */
+    public function setFilterQuery($query, $filterData, $fieldName)
+    {
+        $filterWhere = $filterData->where ?? null;//Get filter where condition
+        $filterOperator = $filterData->operator ?? '=';// Get filter operator
+        $filterValue = $filterData->value ?? $filterData;//Get filter value
 
-  /**
-   * Method to override in the child class if there need modify the data after create
-   * @param $model ,$data
-   * @return void
-   */
-  public function afterCreate(&$model, &$data)
-  {
-
-  }
-
-  /**
-   * Method to request all data from model
-   *
-   * @param false $params
-   * @return mixed
-   */
-  public function getItemsBy($params)
-  {
-    // compare parameters validate use of old query
-    $differentParameters = $this->compareParameters($params);
-    //reusing query if exist
-    if (empty($this->query) || $differentParameters) {
-      //Instance Query
-      $query = $this->model->query();
-
-      //Include relationships
-      if (isset($params->include)) $query = $this->includeToQuery($query, $params->include, "index");
-
-      //Filter Query
-      if (isset($params->filter)) {
-        $filters = $params->filter;//Short data filter
-        //Instance model relations
-        $modelRelations = ($this->model->modelRelations ?? []);
-        //Instance model fillable
-        $modelFillable = array_merge(
-          $this->model->getFillable(),
-          ['id', 'created_at', 'updated_at', 'created_by', 'updated_by']
-        );
-
-        //Set fiter order to params.order: TODO: to keep and don't break old version api
-        if (isset($filters->order) && !isset($params->order)) $params->order = $filters->order;
-
-        //Add Requested Filters
-        foreach ($filters as $filterName => $filterValue) {
-          $filterNameSnake = camelToSnake($filterName);//Get filter name as snakeCase
-          if (!in_array($filterName, $this->replaceFilters)) {
-            //Add fillable filter
-            if (in_array($filterNameSnake, $modelFillable)) {
-              //instance an own filter way when the filter name is ID
-              if ($filterNameSnake == "id") $filterValue = (object)["where" => 'in', "value" => (array)$filterValue];
-              //Set filter
-              $query = $this->setFilterQuery($query, $filterValue, $filterNameSnake);
-            }
-            //Add relation filter
-            if (in_array($filterName, array_keys($modelRelations))) {
-              //dd($this->model->$filterName());
-              $query = $this->setFilterQuery($query, (object)[
-                'where' => $modelRelations[$filterName],
-                'table' => $this->model->$filterName()->getTable(),
-                'foreignPivotKey' => $this->model->$filterName()->getForeignPivotKeyName(),
-                'relatedPivotKey' => $this->model->$filterName()->getRelatedPivotKeyName(),
-                'value' => $filterValue
-              ], $filterName);
-            }
-          }
+        //Set where condition
+        if ($filterWhere == 'in') {
+            $query->whereIn($fieldName, $filterValue);
+        } else if ($filterWhere == 'notIn') {
+            $query->whereNotIn($fieldName, $filterValue);
+        } else if ($filterWhere == 'between') {
+            $query->whereBetween($fieldName, $filterValue);
+        } else if ($filterWhere == 'notBetween') {
+            $query->whereNotBetween($fieldName, $filterValue);
+        } else if ($filterWhere == 'null') {
+            $query->whereNull($fieldName);
+        } else if ($filterWhere == 'notNull') {
+            $query->whereNotNull($fieldName);
+        } else if ($filterWhere == 'date') {
+            $query->whereDate($fieldName, $filterOperator, $filterValue);
+        } else if ($filterWhere == 'year') {
+            $query->whereYear($fieldName, $filterOperator, $filterValue);
+        } else if ($filterWhere == 'month') {
+            $query->whereMonth($fieldName, $filterOperator, $filterValue);
+        } else if ($filterWhere == 'day') {
+            $query->whereDay($fieldName, $filterOperator, $filterValue);
+        } else if ($filterWhere == 'time') {
+            $query->whereTime($fieldName, $filterOperator, $filterValue);
+        } else if ($filterWhere == 'column') {
+            $query->whereColumn($fieldName, $filterOperator, $filterValue);
+        } else if ($filterWhere == 'orWhere') {
+            $query->orWhere($fieldName, $filterOperator, $filterValue);
+        } else if ($filterWhere == 'belongsToMany') {
+            //Sub query to get data by pivot
+            $query->whereIn('id', function ($q) use ($filterData, $filterValue) {
+                //validate filter value
+                if (!is_array($filterValue)) $filterValue = [$filterValue];
+                //filter sub query
+                $q->select($filterData->foreignPivotKey)->from($filterData->table)
+                    ->whereIn($filterData->relatedPivotKey, $filterValue);
+            });
+        } else {
+            $query->where($fieldName, $filterOperator, $filterValue);
         }
 
-        //Filter by date
-        if (isset($filter->date)) {
-          $date = $filter->date;//Short filter date
-          $date->field = $date->field ?? 'created_at';
-          if (isset($date->from))//From a date
-            $query->whereDate($date->field, '>=', $date->from);
-          if (isset($date->to))//to a date
-            $query->whereDate($date->field, '<=', $date->to);
+        //Response
+        return $query;
+    }
+
+    /**
+     * Method to filter query
+     * @param $query
+     * @param $filter
+     * @param $params
+     */
+    public function filterQuery($query, $filter, $params)
+    {
+        return $query;
+    }
+
+    /**
+     * Method to order Query
+     *
+     * @param $query
+     * @param $filter
+     */
+    public function orderQuery($query, $order, $noSortOrder, $orderByRaw)
+    {
+        //allow order by raw with skipping tags
+        if (!empty($orderByRaw)) {
+            $orderByRaw = strip_tags($orderByRaw);
+            return $query->orderByRaw($orderByRaw);
         }
+        //Verify if the model has sort_order column and ordering by that column by default
+        $modelFields = $this->model->getFillable();
 
-        //Audit filter withTrashed
-        if (isset($filters->withTrashed) && $filters->withTrashed) $query->withTrashed();
+        //Include sort_order filter by default
+        if (in_array('sort_order', $modelFields) && !$noSortOrder) $query->orderByRaw('COALESCE(sort_order, 0) desc');
 
-        //Audit filter onlyTrashed
-        if (isset($filters->onlyTrashed) && $filters->onlyTrashed) $query->onlyTrashed();
+        $orderField = $order->field ?? 'created_at';//Default field
+        $orderWay = $order->way ?? 'desc';//Default way
 
-        //Set params into filters, to keep uploader code
-        if (is_array($filters)) $filters = (object)$filters;
+        //Set order to query
+        if (in_array($orderField, ($this->model->translatedAttributes ?? []))) {
+            $query->orderByTranslation($orderField, $orderWay);
+        } else $query->orderBy($orderField, $orderWay);
 
-        //Add model filters
-        $query = $this->filterQuery($query, $filters, $params);
-      }
-
-      //Order Query
-      $query = $this->orderQuery($query, $params->order ?? true, $filters->noSortOrder ?? false, $params->orderByRaw ?? null);
-
-    } else {
-      //save parameters validate use of old query
-      $this->params = $params;
-      //reusing query if exist
-      $query = $this->query;
+        //Return query with filters
+        return $query;
     }
 
-    //Response as query
-    if (isset($params->returnAsQuery) && $params->returnAsQuery) return $query;
+    /**
+     * Method to sync Model Relations by default
+     *
+     * @param $model ,$data
+     * @return $model
+     */
+    public function defaultSyncModelRelations($model, $data)
+    {
+        foreach (($model->modelRelations ?? []) as $relationName => $relationType) {
+            // Check if exist relation in data
+            if (!in_array($relationName, $this->replaceSyncModelRelations) && array_key_exists($relationName, $data)) {
+                // Sync Has Many relation
+                if ($relationType == "hasMany") {
+                    // Validate if exist relation with items
+                    $model->$relationName()->forceDelete();
+                    // Create and Set relation to Model
+                    $model->setRelation($relationName, $model->$relationName()->createMany($data[$relationName]));
+                }
 
-    //Response paginate
-    else if (isset($params->page) && $params->page) $response = $query->paginate($params->take, ['*'], null, $params->page);
-    //Response complete
-    else {
-      if (isset($params->take) && $params->take) $query->take($params->take);//Take
-      $response = $query->get();
-    }
-
-    //Event retrived model
-    $this->dispatchesEvents(['eventName' => 'retrievedIndex', 'data' => [
-      "requestParams" => $params,
-      "response" => $response,
-    ]]);
-
-    //Response
-    return $response;
-  }
-
-  /**
-   * Method to get model by criteria
-   *
-   * @param $criteria
-   * @param $params
-   * @return mixed
-   */
-  public function getItem($criteria, $params = false)
-  {
-    // compare parameters validate use of query
-    $differentParameters = $this->compareParameters($params);
-    //reusing query if exist
-    if (empty($this->query) || $differentParameters) {
-
-      //Instance Query
-      $query = $this->model->query();
-
-      //Include relationships
-      if (isset($params->include)) $query = $this->includeToQuery($query, $params->include, "show");
-
-      //Check field name to criteria
-      if (isset($params->filter->field)) $field = $params->filter->field;
-
-
-      // find translatable attributes
-      $translatedAttributes = $this->model->translatedAttributes ?? [];
-
-
-      // filter by translatable attributes
-      if (isset($field) && in_array($field, $translatedAttributes)) {//Filter by slug
-        $filter = $params->filter;
-        $query->whereHas('translations', function ($query) use ($criteria, $filter, $field) {
-          $query->where('locale', $filter->locale ?? \App::getLocale())
-            ->where($field, $criteria);
-        });
-      } else
-        // find by specific attribute or by id
-        $query->where($field ?? 'id', $criteria);
-
-      //Filter Query
-      if (isset($params->filter)) {
-        $filters = $params->filter;//Short data filter
-        //Instance model fillable
-        $modelFillable = array_merge(
-          $this->model->getFillable(),
-          ['id', 'created_at', 'updated_at', 'created_by', 'updated_by']
-        );
-
-        //Add Requested Filters
-        foreach ($filters as $filterName => $filterValue) {
-          $filterNameSnake = camelToSnake($filterName);//Get filter name as snakeCase
-          if (!in_array($filterName, $this->replaceFilters)) {
-            //Add fillable filter
-            if (in_array($filterNameSnake, $modelFillable)) {
-              $query = $this->setFilterQuery($query, $filterValue, $filterNameSnake);
+                // Sync Belongs to many relation
+                if ($relationType == "belongsToMany") {
+                    $model->$relationName()->sync($data[$relationName]);
+                    $model->setRelation($relationName, $model->$relationName);
+                }
             }
-          }
         }
 
-        //Set params into filters, to keep uploader code
-        if (is_array($filters)) $filters = (object)$filters;
-
-        //Add model filters
-        $query = $this->filterQuery($query, $filters, $params);
-      }
-    } else {
-      //reusing query if exist
-      $query = $this->query;
+        //Response
+        return $model;
     }
 
-    //Response as query
-    if (isset($params->returnAsQuery) && $params->returnAsQuery) return $query;
+    /**
+     * Method to sync Model Relations
+     *
+     * @param $model ,$data
+     * @return $model
+     */
+    public function syncModelRelations($model, $data)
+    {
+        //Get model relations data from attribute of model
+        $modelRelationsData = ($model->modelRelations ?? []);
 
-    //Request
-    $response = $query->first();
+        /**
+         * Note: Add relation name to replaceSyncModelRelations attribute to replace it
+         *
+         * Example to sync relations
+         * if (array_key_exists(<relationName>, $data)){
+         *    $model->setRelation(<relationName>, $model-><relationName>()->sync($data[<relationName>]));
+         * }
+         *
+         */
 
-    //Event retrived model
-    $this->dispatchesEvents(['eventName' => 'retrievedShow', 'data' => [
-      "requestParams" => $params,
-      "response" => $response,
-      "criteria" => $criteria
-    ]]);
-
-    //Response
-    return $response;
-  }
-
-  /**
-   * Method to update model by criteria
-   *
-   * @param $criteria
-   * @param $data
-   * @param $params
-   * @return mixed
-   */
-  public function updateBy($criteria, $data, $params = false)
-  {
-    //Event updating model
-    $this->dispatchesEvents(['eventName' => 'updating', 'data' => $data, 'criteria' => $criteria]);
-
-    //Instance Query
-    $query = $this->model->query();
-
-    //Check field name to criteria
-    if (isset($params->filter->field)) $field = $params->filter->field;
-
-    //get model and update
-    $model = $query->where($field ?? 'id', $criteria)->first();
-    if (isset($model)) {
-      $this->beforeUpdate($data);
-      //Update Model
-      $model->update((array)$data);
-      // Default Sync model relations
-      $model = $this->defaultSyncModelRelations($model, $data);
-      // Custom Sync model relations
-      $model = $this->syncModelRelations($model, $data);
-      // Call function after update it, and take all change from $data and $model
-      $this->afterUpdate($model, $data);
-      //Event updated model
-      $this->dispatchesEvents([
-        'eventName' => 'updated',
-        'data' => $data,
-        'criteria' => $criteria,
-        'model' => $model
-      ]);
+        //Response
+        return $model;
     }
 
-    //Response
-    return $model;
-  }
+    /**
+     * Method to create model
+     *
+     * @param $data
+     * @return mixed
+     */
+    public function create($data)
+    {
+        //Event creating model
+        $this->dispatchesEvents(['eventName' => 'creating', 'data' => $data]);
 
-  /**
-   * Method to override in the child class if there need modify the data before update
-   * @param $data
-   * @return void
-   */
-  public function beforeUpdate(&$data)
-  {
+        // Call function before create it, and take all change from $data
+        $this->beforeCreate($data);
 
-  }
+        //Create model
+        $model = $this->model->create($data);
 
-  /**
-   * Method to override in the child class if there need modify the data after update
-   * @param $model , $data
-   * @return void
-   */
-  public function afterUpdate(&$model, &$data)
-  {
+        // Default sync model relations
+        $model = $this->defaultSyncModelRelations($model, $data);
 
-  }
+        // Custom sync model relations
+        $model = $this->syncModelRelations($model, $data);
 
-  /**
-   * Method to do a bulk order
-   *
-   * @param $data
-   * @param $params
-   * @return mixed|void
-   */
-  public function bulkOrder($data, $params = false)
-  {
-    //Instance the orderField
-    $orderField = $params->filter->field ?? 'position';
-    //loop through data to update the position according to index data
-    foreach ($data as $key => $item) {
-      $this->model->find($item['id'])->update([$orderField => ++$key]);
-    }
-    //Response
-    return $this->model->whereIn('id', array_column($data, "id"))->get();
-  }
+        // Call function after create it, and take all change from $data and $model
+        $this->afterCreate($model, $data);
 
-  /**
-   * Method to do a bulk update models
-   *
-   * @param $data
-   * @param $params
-   * @return mixed|void
-   */
-  public function bulkUpdate($data, $params = false)
-  {
-    //Instance the orderField
-    $fieldName = $params->filter->field ?? 'id';
-    //loop through data to update the position according to index data
-    foreach ($data as $key => $item) {
-      $this->updateBy($item[$fieldName], $item, $params);
-    }
-    //Response
-    return true;
-  }
+        //Event created model
+        $this->dispatchesEvents(['eventName' => 'created', 'data' => $data, 'model' => $model]);
 
-  /**
-   * Method to do a bulk create models
-   *
-   * @param $data
-   * @return mixed|void
-   */
-  public function bulkCreate($data)
-  {
-    //loop through data to create the position according to index data
-    foreach ($data as $key => $item) {
-      $this->create($item);
-    }
-    //Response
-    return true;
-  }
-
-  /**
-   * Method to delete model by criteria
-   *
-   * @param $criteria
-   * @param $params
-   * @return mixed
-   */
-  public function deleteBy($criteria, $params = false)
-  {
-    //Instance Query
-    $query = $this->model->query();
-
-    //Check field name to criteria
-    if (isset($params->filter->field)) $field = $params->filter->field;
-
-    //get model
-    $model = $query->where($field ?? 'id', $criteria)->first();
-
-    //Event deleting model
-    $this->dispatchesEvents(['eventName' => 'deleting', 'criteria' => $criteria, 'model' => $model]);
-
-    //Delete Model
-    if ($model) $model->delete();
-
-    //Event deleted model
-    $this->dispatchesEvents(['eventName' => 'deleted', 'criteria' => $criteria]);
-
-    //Response
-    return $model;
-  }
-
-  /**
-   * Method to delete model by criteria
-   *
-   * @param $criteria
-   * @param $params
-   * @return mixed
-   */
-  public function restoreBy($criteria, $params = false)
-  {
-    //Instance Query
-    $query = $this->model->query();
-
-    //Check field name to criteria
-    if (isset($params->filter->field)) $field = $params->filter->field;
-
-    //get model
-    $model = $query->where($field ?? 'id', $criteria)->withTrashed()->first();
-
-    //Delete Model
-    if ($model) $model->restore();
-
-    //Response
-    return $model;
-  }
-
-  /**
-   * Dispathes events
-   *
-   * @param $params
-   */
-  public function dispatchesEvents($params)
-  {
-    //Instance parameters
-    $eventName = $params['eventName'];
-    $data = $params['data'] ?? [];
-    $criteria = $params['criteria'] ?? null;
-    $model = $params['model'] ?? null;
-
-    //Dispatch retrieved events
-    if ($eventName == 'retrievedIndex') {
-      //Emit event retrievedWithBindings
-      if (method_exists($this->model, 'retrievedIndexCrudModel'))
-        $this->model->retrievedIndexCrudModel(['data' => $data]);
+        //Response
+        return $model;
     }
 
-    //Dispatch retrieved events
-    if ($eventName == 'retrievedShow') {
-      //Emit event retrievedWithBindings
-      if (method_exists($this->model, 'retrievedShowCrudModel'))
-        $this->model->retrievedShowCrudModel(['data' => $data]);
+    /**
+     * Method to override in the child class if there need modify the data before create
+     * @param $data
+     * @return void
+     */
+    public function beforeCreate(&$data)
+    {
+
     }
 
-    //Dispatch creating events
-    if ($eventName == 'creating') {
-      //Emit event creatingWithBindings
-      if (method_exists($this->model, 'creatingCrudModel'))
-        $this->model->creatingCrudModel(['data' => $data]);
+    /**
+     * Method to override in the child class if there need modify the data after create
+     * @param $model ,$data
+     * @return void
+     */
+    public function afterCreate(&$model, &$data)
+    {
+
     }
 
-    //Dispatch created events
-    if ($eventName == 'created') {
-      //Emit event createdWithBindings
-      if (method_exists($model, 'createdCrudModel'))
-        $model->createdCrudModel(['data' => $data]);
-      //Event to ADD media
-      if (method_exists($model, 'mediaFiles'))
-        event(new CreateMedia($model, $data));
+    /**
+     * Method to request all data from model
+     *
+     * @param false $params
+     * @return mixed
+     */
+    public function getItemsBy($params)
+    {
+        // compare parameters validate use of old query
+        $differentParameters = $this->compareParameters($params);
+        //reusing query if exist
+        if (empty($this->query) || $differentParameters) {
+            //Instance Query
+            $query = $this->model->query();
+
+            //Include relationships
+            if (isset($params->include)) $query = $this->includeToQuery($query, $params->include, "index");
+
+            //Filter Query
+            if (isset($params->filter)) {
+                $filters = $params->filter;//Short data filter
+                //Instance model relations
+                $modelRelations = ($this->model->modelRelations ?? []);
+                //Instance model fillable
+                $modelFillable = array_merge(
+                    $this->model->getFillable(),
+                    ['id', 'created_at', 'updated_at', 'created_by', 'updated_by']
+                );
+
+                //Set fiter order to params.order: TODO: to keep and don't break old version api
+                if (isset($filters->order) && !isset($params->order)) $params->order = $filters->order;
+
+                //Add Requested Filters
+                foreach ($filters as $filterName => $filterValue) {
+                    $filterNameSnake = camelToSnake($filterName);//Get filter name as snakeCase
+                    if (!in_array($filterName, $this->replaceFilters)) {
+                        //Add fillable filter
+                        if (in_array($filterNameSnake, $modelFillable)) {
+                            //instance an own filter way when the filter name is ID
+                            if ($filterNameSnake == "id") $filterValue = (object)["where" => 'in', "value" => (array)$filterValue];
+                            //Set filter
+                            $query = $this->setFilterQuery($query, $filterValue, $filterNameSnake);
+                        }
+                        //Add relation filter
+                        if (in_array($filterName, array_keys($modelRelations))) {
+                            //dd($this->model->$filterName());
+                            $query = $this->setFilterQuery($query, (object)[
+                                'where' => $modelRelations[$filterName],
+                                'table' => $this->model->$filterName()->getTable(),
+                                'foreignPivotKey' => $this->model->$filterName()->getForeignPivotKeyName(),
+                                'relatedPivotKey' => $this->model->$filterName()->getRelatedPivotKeyName(),
+                                'value' => $filterValue
+                            ], $filterName);
+                        }
+                    }
+                }
+
+                //Filter by date
+                if (isset($filter->date)) {
+                    $date = $filter->date;//Short filter date
+                    $date->field = $date->field ?? 'created_at';
+                    if (isset($date->from))//From a date
+                        $query->whereDate($date->field, '>=', $date->from);
+                    if (isset($date->to))//to a date
+                        $query->whereDate($date->field, '<=', $date->to);
+                }
+
+                //Audit filter withTrashed
+                if (isset($filters->withTrashed) && $filters->withTrashed) $query->withTrashed();
+
+                //Audit filter onlyTrashed
+                if (isset($filters->onlyTrashed) && $filters->onlyTrashed) $query->onlyTrashed();
+
+                //Set params into filters, to keep uploader code
+                if (is_array($filters)) $filters = (object)$filters;
+
+                //Add model filters
+                $query = $this->filterQuery($query, $filters, $params);
+            }
+
+            //Order Query
+            $query = $this->orderQuery($query, $params->order ?? true, $filters->noSortOrder ?? false, $params->orderByRaw ?? null);
+
+        } else {
+            //save parameters validate use of old query
+            $this->params = $params;
+            //reusing query if exist
+            $query = $this->query;
+        }
+
+        //Response as query
+        if (isset($params->returnAsQuery) && $params->returnAsQuery) return $query;
+
+        //Response paginate
+        else if (isset($params->page) && $params->page) $response = $query->paginate($params->take, ['*'], null, $params->page);
+        //Response complete
+        else {
+            if (isset($params->take) && $params->take) $query->take($params->take);//Take
+            $response = $query->get();
+        }
+
+        //Event retrived model
+        $this->dispatchesEvents(['eventName' => 'retrievedIndex', 'data' => [
+            "requestParams" => $params,
+            "response" => $response,
+        ]]);
+
+        //Response
+        return $response;
     }
 
-    //Dispatch updating events
-    if ($eventName == 'updating') {
-      //Emit event updatingWithBindings
-      if (method_exists($this->model, 'updatingCrudModel'))
-        $this->model->updatingCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
+    /**
+     * Method to get model by criteria
+     *
+     * @param $criteria
+     * @param $params
+     * @return mixed
+     */
+    public function getItem($criteria, $params = false)
+    {
+        // compare parameters validate use of query
+        $differentParameters = $this->compareParameters($params);
+        //reusing query if exist
+        if (empty($this->query) || $differentParameters) {
+
+            //Instance Query
+            $query = $this->model->query();
+
+            //Include relationships
+            if (isset($params->include)) $query = $this->includeToQuery($query, $params->include, "show");
+
+            //Check field name to criteria
+            if (isset($params->filter->field)) $field = $params->filter->field;
+
+
+            // find translatable attributes
+            $translatedAttributes = $this->model->translatedAttributes ?? [];
+
+
+            // filter by translatable attributes
+            if (isset($field) && in_array($field, $translatedAttributes)) {//Filter by slug
+                $filter = $params->filter;
+                $query->whereHas('translations', function ($query) use ($criteria, $filter, $field) {
+                    $query->where('locale', $filter->locale ?? \App::getLocale())
+                        ->where($field, $criteria);
+                });
+            } else
+                // find by specific attribute or by id
+                $query->where($field ?? 'id', $criteria);
+
+            //Filter Query
+            if (isset($params->filter)) {
+                $filters = $params->filter;//Short data filter
+                //Instance model fillable
+                $modelFillable = array_merge(
+                    $this->model->getFillable(),
+                    ['id', 'created_at', 'updated_at', 'created_by', 'updated_by']
+                );
+
+                //Add Requested Filters
+                foreach ($filters as $filterName => $filterValue) {
+                    $filterNameSnake = camelToSnake($filterName);//Get filter name as snakeCase
+                    if (!in_array($filterName, $this->replaceFilters)) {
+                        //Add fillable filter
+                        if (in_array($filterNameSnake, $modelFillable)) {
+                            $query = $this->setFilterQuery($query, $filterValue, $filterNameSnake);
+                        }
+                    }
+                }
+
+                //Set params into filters, to keep uploader code
+                if (is_array($filters)) $filters = (object)$filters;
+
+                //Add model filters
+                $query = $this->filterQuery($query, $filters, $params);
+            }
+        } else {
+            //reusing query if exist
+            $query = $this->query;
+        }
+
+        //Response as query
+        if (isset($params->returnAsQuery) && $params->returnAsQuery) return $query;
+
+        //Request
+        $response = $query->first();
+
+        //Event retrived model
+        $this->dispatchesEvents(['eventName' => 'retrievedShow', 'data' => [
+            "requestParams" => $params,
+            "response" => $response,
+            "criteria" => $criteria
+        ]]);
+
+        //Response
+        return $response;
     }
 
-    //Dispatch updated events
-    if ($eventName == 'updated') {
-      //Emit event updatedWithBindings
-      if (method_exists($model, 'updatedCrudModel'))
-        $model->updatedCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
-      //Event to Update media
-      if (method_exists($model, 'mediaFiles'))
-        event(new UpdateMedia($model, $data));
+    public function getItemsByTransformed($models, $params)
+    {
+        return CrudResource::transformData($models)->jsonSerialize();
     }
 
-    //Dispatch deleting events
-    if ($eventName == 'deleting') {
+    /**
+     * Method to update model by criteria
+     *
+     * @param $criteria
+     * @param $data
+     * @param $params
+     * @return mixed
+     */
+    public function updateBy($criteria, $data, $params = false)
+    {
+        //Event updating model
+        $this->dispatchesEvents(['eventName' => 'updating', 'data' => $data, 'criteria' => $criteria]);
+
+        //Instance Query
+        $query = $this->model->query();
+
+        //Check field name to criteria
+        if (isset($params->filter->field)) $field = $params->filter->field;
+
+        //get model and update
+        $model = $query->where($field ?? 'id', $criteria)->first();
+        if (isset($model)) {
+            $this->beforeUpdate($data);
+            //Update Model
+            $model->update((array)$data);
+            // Default Sync model relations
+            $model = $this->defaultSyncModelRelations($model, $data);
+            // Custom Sync model relations
+            $model = $this->syncModelRelations($model, $data);
+            // Call function after update it, and take all change from $data and $model
+            $this->afterUpdate($model, $data);
+            //Event updated model
+            $this->dispatchesEvents([
+                'eventName' => 'updated',
+                'data' => $data,
+                'criteria' => $criteria,
+                'model' => $model
+            ]);
+        }
+
+        //Response
+        return $model;
     }
 
-    //Dispatch deleted events
-    if ($eventName == 'deleted') {
+    /**
+     * Method to override in the child class if there need modify the data before update
+     * @param $data
+     * @return void
+     */
+    public function beforeUpdate(&$data)
+    {
+
     }
 
-    //Dispatches model events
-    $dispatchesEvents = $this->model->dispatchesEventsWithBindings ?? [];
-    if (isset($dispatchesEvents[$eventName]) && count($dispatchesEvents[$eventName])) {
-      //Dispath every model events from eventName
-      foreach ($dispatchesEvents[$eventName] as $event) {
-        //Get the module name from path event parameter
-        $moduleName = explode("\\", $event['path'])[1];
-        //Validate if module is enabled to dispath event
-        if (is_module_enabled($moduleName)) event(new $event['path']([
-          'data' => $data,
-          'extraData' => $event['extraData'] ?? [],
-          'criteria' => $criteria,
-          'model' => $model
-        ]));
-      }
-    }
-  }
+    /**
+     * Method to override in the child class if there need modify the data after update
+     * @param $model , $data
+     * @return void
+     */
+    public function afterUpdate(&$model, &$data)
+    {
 
-  /**
-   * Function to validate parameters
-   *
-   * @param $params
-   */
-  private function compareParameters($params): bool
-  {
-    $newParams = json_encode($params);
-    $queryParams = json_encode($this->params);
-    return $newParams != $queryParams;;
-  }
+    }
+
+    /**
+     * Method to do a bulk order
+     *
+     * @param $data
+     * @param $params
+     * @return mixed|void
+     */
+    public function bulkOrder($data, $params = false)
+    {
+        //Instance the orderField
+        $orderField = $params->filter->field ?? 'position';
+        //loop through data to update the position according to index data
+        foreach ($data as $key => $item) {
+            $this->model->find($item['id'])->update([$orderField => ++$key]);
+        }
+        //Response
+        return $this->model->whereIn('id', array_column($data, "id"))->get();
+    }
+
+    /**
+     * Method to do a bulk update models
+     *
+     * @param $data
+     * @param $params
+     * @return mixed|void
+     */
+    public function bulkUpdate($data, $params = false)
+    {
+        //Instance the orderField
+        $fieldName = $params->filter->field ?? 'id';
+        //loop through data to update the position according to index data
+        foreach ($data as $key => $item) {
+            $this->updateBy($item[$fieldName], $item, $params);
+        }
+        //Response
+        return true;
+    }
+
+    /**
+     * Method to do a bulk create models
+     *
+     * @param $data
+     * @return mixed|void
+     */
+    public function bulkCreate($data)
+    {
+        //loop through data to create the position according to index data
+        foreach ($data as $key => $item) {
+            $this->create($item);
+        }
+        //Response
+        return true;
+    }
+
+    /**
+     * Method to delete model by criteria
+     *
+     * @param $criteria
+     * @param $params
+     * @return mixed
+     */
+    public function deleteBy($criteria, $params = false)
+    {
+        //Instance Query
+        $query = $this->model->query();
+
+        //Check field name to criteria
+        if (isset($params->filter->field)) $field = $params->filter->field;
+
+        //get model
+        $model = $query->where($field ?? 'id', $criteria)->first();
+
+        //Event deleting model
+        $this->dispatchesEvents(['eventName' => 'deleting', 'criteria' => $criteria, 'model' => $model]);
+
+        //Delete Model
+        if ($model) $model->delete();
+
+        //Event deleted model
+        $this->dispatchesEvents(['eventName' => 'deleted', 'criteria' => $criteria]);
+
+        //Response
+        return $model;
+    }
+
+    /**
+     * Method to delete model by criteria
+     *
+     * @param $criteria
+     * @param $params
+     * @return mixed
+     */
+    public function restoreBy($criteria, $params = false)
+    {
+        //Instance Query
+        $query = $this->model->query();
+
+        //Check field name to criteria
+        if (isset($params->filter->field)) $field = $params->filter->field;
+
+        //get model
+        $model = $query->where($field ?? 'id', $criteria)->withTrashed()->first();
+
+        //Delete Model
+        if ($model) $model->restore();
+
+        //Response
+        return $model;
+    }
+
+    /**
+     * Dispathes events
+     *
+     * @param $params
+     */
+    public function dispatchesEvents($params)
+    {
+        //Instance parameters
+        $eventName = $params['eventName'];
+        $data = $params['data'] ?? [];
+        $criteria = $params['criteria'] ?? null;
+        $model = $params['model'] ?? null;
+
+        //Dispatch retrieved events
+        if ($eventName == 'retrievedIndex') {
+            //Emit event retrievedWithBindings
+            if (method_exists($this->model, 'retrievedIndexCrudModel'))
+                $this->model->retrievedIndexCrudModel(['data' => $data]);
+        }
+
+        //Dispatch retrieved events
+        if ($eventName == 'retrievedShow') {
+            //Emit event retrievedWithBindings
+            if (method_exists($this->model, 'retrievedShowCrudModel'))
+                $this->model->retrievedShowCrudModel(['data' => $data]);
+        }
+
+        //Dispatch creating events
+        if ($eventName == 'creating') {
+            //Emit event creatingWithBindings
+            if (method_exists($this->model, 'creatingCrudModel'))
+                $this->model->creatingCrudModel(['data' => $data]);
+        }
+
+        //Dispatch created events
+        if ($eventName == 'created') {
+            //Emit event createdWithBindings
+            if (method_exists($model, 'createdCrudModel'))
+                $model->createdCrudModel(['data' => $data]);
+            //Event to ADD media
+            if (method_exists($model, 'mediaFiles'))
+                event(new CreateMedia($model, $data));
+        }
+
+        //Dispatch updating events
+        if ($eventName == 'updating') {
+            //Emit event updatingWithBindings
+            if (method_exists($this->model, 'updatingCrudModel'))
+                $this->model->updatingCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
+        }
+
+        //Dispatch updated events
+        if ($eventName == 'updated') {
+            //Emit event updatedWithBindings
+            if (method_exists($model, 'updatedCrudModel'))
+                $model->updatedCrudModel(['data' => $data, 'params' => $params, 'criteria' => $criteria]);
+            //Event to Update media
+            if (method_exists($model, 'mediaFiles'))
+                event(new UpdateMedia($model, $data));
+        }
+
+        //Dispatch deleting events
+        if ($eventName == 'deleting') {
+        }
+
+        //Dispatch deleted events
+        if ($eventName == 'deleted') {
+        }
+
+        //Dispatches model events
+        $dispatchesEvents = $this->model->dispatchesEventsWithBindings ?? [];
+        if (isset($dispatchesEvents[$eventName]) && count($dispatchesEvents[$eventName])) {
+            //Dispath every model events from eventName
+            foreach ($dispatchesEvents[$eventName] as $event) {
+                //Get the module name from path event parameter
+                $moduleName = explode("\\", $event['path'])[1];
+                //Validate if module is enabled to dispath event
+                if (is_module_enabled($moduleName)) event(new $event['path']([
+                    'data' => $data,
+                    'extraData' => $event['extraData'] ?? [],
+                    'criteria' => $criteria,
+                    'model' => $model
+                ]));
+            }
+        }
+    }
+
+    /**
+     * Function to validate parameters
+     *
+     * @param $params
+     */
+    private function compareParameters($params): bool
+    {
+        $newParams = json_encode($params);
+        $queryParams = json_encode($this->params);
+        return $newParams != $queryParams;;
+    }
 
 }
