@@ -500,7 +500,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
     public function getItemsByTransformed($models, $params)
     {
-        return CrudResource::transformData($models)->jsonSerialize();
+        return json_decode(json_encode(CrudResource::transformData($models)));
     }
 
     /**
