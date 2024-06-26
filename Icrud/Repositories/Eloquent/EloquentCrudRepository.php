@@ -4,6 +4,7 @@ namespace Modules\Core\Icrud\Repositories\Eloquent;
 
 use Modules\Core\Repositories\Eloquent\EloquentBaseRepository;
 use Modules\Core\Icrud\Repositories\BaseCrudRepository;
+use Modules\Core\Icrud\Transformers\CrudResource;
 
 use Modules\Ihelpers\Events\CreateMedia;
 use Modules\Ihelpers\Events\DeleteMedia;
@@ -496,6 +497,11 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     //Response
     return $response;
   }
+
+    public function getItemsByTransformed($models, $params)
+    {
+        return CrudResource::transformData($models)->jsonSerialize();
+    }
 
   /**
    * Method to update model by criteria

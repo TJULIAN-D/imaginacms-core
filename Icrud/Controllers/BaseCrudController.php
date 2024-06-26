@@ -59,7 +59,7 @@ class BaseCrudController extends BaseApiController
       $models = $this->modelRepository->getItemsBy($params);
 
       //Response
-      $response = ["data" => CrudResource::transformData($models)];
+      $response = ['data' => $this->modelRepository->getItemsByTransformed($models, $params)];
 
       //If request pagination add meta-page
       $params->page ? $response["meta"] = ["page" => $this->pageTransformer($models)] : false;
@@ -69,7 +69,7 @@ class BaseCrudController extends BaseApiController
     }
 
     //Return response
-    return response()->json($response ?? ["data" => "Request successful"], $status ?? 200);
+      return response($response ?? ['data' => 'Request successful'], $status ?? 200);
   }
 
   /**
@@ -116,11 +116,11 @@ class BaseCrudController extends BaseApiController
       $modelData = $request->input('attributes') ?? [];
       //Get Parameters from URL.
       $params = $this->getParamsRequest($request);
-  
+
       //auto-insert the criteria in the data to update
       isset($params->filter->field) ? $field = $params->filter->field : $field = "id";
       $data[$field] = $criteria;
-      
+
       //Validate Request
       if (isset($this->model->requestValidation['update'])) {
         $this->validateRequestApi(new $this->model->requestValidation['update']($modelData));
