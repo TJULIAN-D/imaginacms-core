@@ -38,7 +38,8 @@ class BaseCrudController extends BaseApiController
     } catch (\Exception $e) {
       \DB::rollback();//Rollback to Data Base
       $status = $this->getStatusError($e->getCode());
-      $response = ["messages" => [["message" => $e->getMessage(), "type" => "error"]]];
+      $response = $status == 409 ? json_decode($e->getMessage()) :
+        ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
     }
     //Return response
     return response()->json($response ?? ["data" => "Request successful"], $status ?? 200);
@@ -69,7 +70,7 @@ class BaseCrudController extends BaseApiController
     }
 
     //Return response
-      return response($response ?? ['data' => 'Request successful'], $status ?? 200);
+    return response($response ?? ['data' => 'Request successful'], $status ?? 200);
   }
 
   /**
@@ -138,7 +139,8 @@ class BaseCrudController extends BaseApiController
     } catch (\Exception $e) {
       \DB::rollback();//Rollback to Data Base
       $status = $this->getStatusError($e->getCode());
-      $response = ["messages" => [["message" => $e->getMessage(), "type" => "error"]]];
+      $response = $status == 409 ? json_decode($e->getMessage()) :
+        ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
     }
 
     //Return response
