@@ -63,7 +63,8 @@ class BaseCrudController extends BaseApiController
             $params->page ? $response['meta'] = ['page' => $this->pageTransformer($models)] : false;
         } catch (\Exception $e) {
             $status = $this->getStatusError($e->getCode());
-            $response = ['errors' => $e->getMessage()];
+            $response = $status == 409 ? json_decode($e->getMessage()) :
+              ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
         }
 
         //Return response
@@ -137,7 +138,8 @@ class BaseCrudController extends BaseApiController
         } catch (\Exception $e) {
             \DB::rollback(); //Rollback to Data Base
             $status = $this->getStatusError($e->getCode());
-            $response = ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
+            $response = $status == 409 ? json_decode($e->getMessage()) :
+              ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
         }
 
         //Return response

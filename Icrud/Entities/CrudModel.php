@@ -7,10 +7,11 @@ use Modules\Core\Support\Traits\AuditTrait;
 use Modules\Core\Icrud\Traits\hasEventsWithBindings;
 use Modules\Isite\Traits\RevisionableTrait;
 use Modules\Core\Icrud\Traits\SingleFlaggable;
+use Modules\Core\Icrud\Traits\HasUniqueFields;
 
 class CrudModel extends Model
 {
-  use AuditTrait, hasEventsWithBindings, RevisionableTrait, SingleFlaggable;
+  use AuditTrait, hasEventsWithBindings, RevisionableTrait, SingleFlaggable, hasUniqueFields;
 
   function getFillables(){
     return $this->fillable;
