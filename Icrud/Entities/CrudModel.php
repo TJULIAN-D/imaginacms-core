@@ -11,7 +11,7 @@ use Modules\Core\Icrud\Traits\HasUniqueFields;
 
 class CrudModel extends Model
 {
-  use AuditTrait, hasEventsWithBindings, RevisionableTrait, SingleFlaggable, hasUniqueFields;
+  use AuditTrait, hasEventsWithBindings, RevisionableTrait, SingleFlaggable, HasUniqueFields;
 
   function getFillables(){
     return $this->fillable;
