@@ -22,14 +22,14 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @var array
    */
   protected $replaceFilters = [];
-  
+
   /**
    * Relation name to replace
    * @var array
    */
   protected $replaceSyncModelRelations = [];
-  
-  
+
+
   /**
    * Query where to save the current query
    * @var null
@@ -169,7 +169,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   public function orderQuery($query, $order, $noSortOrder, $orderByRaw)
   {
     //allow order by raw with skipping tags
-    if(!empty($orderByRaw)){
+    if (!empty($orderByRaw)) {
       $orderByRaw = strip_tags($orderByRaw);
       return $query->orderByRaw($orderByRaw);
     }
@@ -181,7 +181,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
     $orderField = $order->field ?? 'created_at';//Default field
     $orderWay = $order->way ?? 'desc';//Default way
-    
+
     //Set order to query
     if (in_array($orderField, ($this->model->translatedAttributes ?? []))) {
       $query->orderByTranslation($orderField, $orderWay);
@@ -498,10 +498,10 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     return $response;
   }
 
-    public function getItemsByTransformed($models, $params)
-    {
-        return json_decode(json_encode(CrudResource::transformData($models)));
-    }
+  public function getItemsByTransformed($models, $params)
+  {
+    return json_decode(json_encode(CrudResource::transformData($models)));
+  }
 
   /**
    * Method to update model by criteria
@@ -636,6 +636,9 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     //Check field name to criteria
     if (isset($params->filter->field)) $field = $params->filter->field;
 
+    //Include trashed records
+    if($this->hasSoftDeletes()) $query->withTrashed();
+
     //get model
     $model = $query->where($field ?? 'id', $criteria)->first();
 
@@ -643,7 +646,10 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     $this->dispatchesEvents(['eventName' => 'deleting', 'criteria' => $criteria, 'model' => $model]);
 
     //Delete Model
-    if ($model) $model->delete();
+    if ($model) {
+      if (isset($params->filter->forceDelete) && $this->hasSoftDeletes()) $model->forceDelete();
+      else $model->delete();
+    }
 
     //Event deleted model
     $this->dispatchesEvents(['eventName' => 'deleted', 'criteria' => $criteria]);
@@ -776,4 +782,8 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     return $newParams != $queryParams;;
   }
 
+  private function hasSoftDeletes()
+  {
+    return method_exists($this->model, "forceDelete");
+  }
 }
