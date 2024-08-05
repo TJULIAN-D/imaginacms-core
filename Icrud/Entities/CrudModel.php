@@ -8,12 +8,14 @@ use Modules\Core\Icrud\Traits\hasEventsWithBindings;
 use Modules\Isite\Traits\RevisionableTrait;
 use Modules\Core\Icrud\Traits\SingleFlaggable;
 use Modules\Core\Icrud\Traits\HasUniqueFields;
+use Modules\Core\Icrud\Traits\HasCacheClearable;
 
 class CrudModel extends Model
 {
-  use AuditTrait, hasEventsWithBindings, RevisionableTrait, SingleFlaggable, HasUniqueFields;
+  use AuditTrait, hasEventsWithBindings, RevisionableTrait, SingleFlaggable, HasUniqueFields, HasCacheClearable;
 
-  function getFillables(){
+  function getFillables()
+  {
     return $this->fillable;
   }
 }
