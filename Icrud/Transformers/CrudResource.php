@@ -121,7 +121,7 @@ class CrudResource extends JsonResource
         $attributeName = Str::replace(["get", "Attribute"], ["", ""], $methodName);
 
         //avoid the magic methods of the fillables
-        if (!in_array(Str::snake($attributeName), $attributes)) {
+        if (!in_array(Str::snake($attributeName), array_merge($attributes, $translatableAttributes))) {
           $response[Str::camel($attributeName)] = $this->{$methodName}();
         }
       }
