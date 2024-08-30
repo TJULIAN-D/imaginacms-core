@@ -37,7 +37,10 @@ class CrudResource extends JsonResource
   public function toArray($request)
   {
     $response = []; //Default Response
-    $translatableAttributes = $this->translatedAttributes ?? [];//Get translatable attributes
+    //Get translatable attributes
+    $translatableAttributes = array_filter(($this->translatedAttributes ?? []), function ($value) {
+      return !in_array($value, ['locale']);//Exclude this attributes from translatable attributes
+    });
     $attributes = method_exists($this->resource, "getFillables") ?
       $this->resource->getFillables() : [];//Get all fillable attributes, just for model that extends CrudModel
 
@@ -118,7 +121,7 @@ class CrudResource extends JsonResource
         $attributeName = Str::replace(["get", "Attribute"], ["", ""], $methodName);
 
         //avoid the magic methods of the fillables
-        if (!in_array(Str::snake($attributeName), $attributes)) {
+        if (!in_array(Str::snake($attributeName), array_merge($attributes, $translatableAttributes))) {
           $response[Str::camel($attributeName)] = $this->{$methodName}();
         }
       }

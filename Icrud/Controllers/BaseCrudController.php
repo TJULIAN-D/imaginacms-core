@@ -280,11 +280,14 @@ class BaseCrudController extends BaseApiController
             $method = $params['method'] ?? 'show';
             $item = $model->$method($criteria);
 
+            //Throw exception if no found item
+            if(!$item) throw new Exception('Item not found', 204);
+
             //Response
             $response = ['data' => $item];
         } catch (\Exception $e) {
-            \Log::Error($e);
-            $response = ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
+            $status = $this->getStatusError($e->getCode());
+            $response = ["errors" => $e->getMessage()];
         }
 
         //Return response
