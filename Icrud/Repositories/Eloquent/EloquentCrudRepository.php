@@ -790,11 +790,11 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    *
    * @param $params
    */
-  private function compareParameters($params): bool
+  public function compareParameters($params): bool
   {
     $newParams = json_encode($params);
     $queryParams = json_encode($this->params);
-    return $newParams != $queryParams;;
+    return $newParams != $queryParams;
   }
 
 
