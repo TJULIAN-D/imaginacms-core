@@ -316,7 +316,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       $query = $this->model->query();
 
       //Include relationships
-      if (isset($params->include)) $query = $this->includeToQuery($query, $params->include, "index");
+      $query = $this->includeToQuery($query, ($params->include ?? []), "index");
 
       //Filter Query
       if (isset($params->filter)) {
@@ -431,7 +431,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       $query = $this->model->query();
 
       //Include relationships
-      if (isset($params->include)) $query = $this->includeToQuery($query, $params->include, "show");
+      $query = $this->includeToQuery($query, ($params->include ?? []), "show");
 
       //Check field name to criteria
       if (isset($params->filter->field)) $field = $params->filter->field;
