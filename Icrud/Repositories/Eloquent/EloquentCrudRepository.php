@@ -426,6 +426,8 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     $differentParameters = $this->compareParameters($params);
     //reusing query if exist
     if (empty($this->query) || $differentParameters) {
+      $filter = $params->filter ?? (object)[];
+      $translatableAttributes = $this->model->translatedAttributes ?? [];
 
       //Instance Query
       $query = $this->model->query();
@@ -433,24 +435,32 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       //Include relationships
       $query = $this->includeToQuery($query, ($params->include ?? []), "show");
 
-      //Check field name to criteria
-      if (isset($params->filter->field)) $field = $params->filter->field;
+      //Get fields to use as criteria filter
+      $criteriaFields = $params->filter->field ?? ['id'];
+      if (!is_array($criteriaFields)) $criteriaFields = [$criteriaFields];
 
-
-      // find translatable attributes
-      $translatedAttributes = $this->model->translatedAttributes ?? [];
-
-
-      // filter by translatable attributes
-      if (isset($field) && in_array($field, $translatedAttributes)) {//Filter by slug
-        $filter = $params->filter;
-        $query->whereHas('translations', function ($query) use ($criteria, $filter, $field) {
+      // Set filter column translatable for criteria
+      $translatableFields = array_intersect($criteriaFields, $translatableAttributes);
+      if (count($translatableAttributes)) {
+        $query->whereHas('translations', function ($query) use ($criteria, $filter, $translatableFields) {
           $query->where('locale', $filter->locale ?? \App::getLocale())
-            ->where($field, $criteria);
+            ->where(function ($query) use ($criteria, $translatableFields) {
+              foreach ($translatableFields as $field) {
+                $query->orWhere($field, $criteria);
+              }
+            });
         });
-      } else
-        // find by specific attribute or by id
-        $query->where($field ?? 'id', $criteria);
+      }
+
+      // Set filter column for criteria
+      $modelFields = array_diff($criteriaFields, $translatableAttributes);
+      if(count($modelFields)){
+        $query->where(function ($query) use ($modelFields, $criteria) {
+          foreach ($modelFields as $field) {
+            $query->orWhere($field, $criteria);
+          }
+        });
+      }
 
       //Filter Query
       if (isset($params->filter)) {
