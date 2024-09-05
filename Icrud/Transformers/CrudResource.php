@@ -50,13 +50,18 @@ class CrudResource extends JsonResource
     $languages = \LaravelLocalization::getSupportedLocales();// Get site languages
     $excludeRelations = array_merge(['translations'], $this->excludeRelations);//No self-load this relations
 
+      //Get model attribute form module
+      $response = $this->modelAttributes($request);
+
     //Add attributes
     foreach ($attributes as $fieldName) {
+        if (!in_array($fieldName, array_keys($response))) {
       $response[snakeToCamel($fieldName)] = $this->when(
         (isset($this[$fieldName]) || is_null($this[$fieldName])),
         $this[$fieldName]
       );
     }
+      }
 
     //Add translatable attributes
     foreach ($translatableAttributes as $fieldName) {
@@ -114,6 +119,7 @@ class CrudResource extends JsonResource
     foreach (get_class_methods($this->resource) as $methodName) {
       // if the method starts with get and ends with Attribute
       // excepting base method "getAttribute"
+        if (!in_array($methodName, array_keys($response))) {
       if (Str::startsWith($methodName, "get") && Str::endsWith($methodName, "Attribute")
         && $methodName != "getAttribute") {
 
@@ -126,10 +132,8 @@ class CrudResource extends JsonResource
         }
       }
     }
+      }
 
-
-    //Add model extra attributes
-    $response = array_merge($response, $this->modelAttributes($request));
     //Sort response
     ksort($response);
 
