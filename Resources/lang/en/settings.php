@@ -7,4 +7,5 @@ return [
     'template' => 'Front end template',
     'analytics-script' => 'Analytics Script',
     'locales' => 'Site locales',
+    'siteCleanedAt' => 'Site Cleaned At',
 ];
