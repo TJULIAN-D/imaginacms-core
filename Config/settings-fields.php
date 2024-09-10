@@ -9,7 +9,7 @@ return [
         'columns' => 'col-12 col-md-6',
         'quickSetting' => true,
         'props' => [
-            'label' => 'core::settings.site-name',
+            'label' => 'core::settings.site-name'
         ],
     ],
     'site-name-mini' => [
@@ -19,39 +19,39 @@ return [
         'isTranslatable' => true,
         'columns' => 'col-12 col-md-6',
         'props' => [
-            'label' => 'core::settings.site-name-mini',
+            'label' => 'core::settings.site-name-mini'
         ],
     ],
     'locales' => [
         'name' => 'core::locales',
         'value' => [],
         'type' => 'treeSelect',
-        'onlySuperAdmin' => true,
+        "onlySuperAdmin" => true,
         'columns' => 'col-12 col-md-6',
         'props' => [
             'label' => 'core::settings.locales',
-            'multiple' => true,
+            'multiple' => true
         ],
         'loadOptions' => [
             'apiRoute' => 'apiRoutes.qsite.siteSettings',
             'select' => ['label' => 'name', 'id' => 'iso'],
-            'requestParams' => ['filter' => ['settingGroupName' => 'availableLocales']],
-        ],
+            'requestParams' => ['filter' => ['settingGroupName' => 'availableLocales']]
+        ]
     ],
     'template' => [
-        'onlySuperAdmin' => true,
+        "onlySuperAdmin" => true,
         'name' => 'core::template',
         'value' => null,
         'type' => 'select',
         'columns' => 'col-12 col-md-6',
         'props' => [
-            'label' => 'core::settings.template',
+            'label' => 'core::settings.template'
         ],
         'loadOptions' => [
             'apiRoute' => 'apiRoutes.qsite.siteSettings',
             'select' => ['label' => 'name', 'id' => 'name'],
-            'requestParams' => ['filter' => ['settingGroupName' => 'availableThemes']],
-        ],
+            'requestParams' => ['filter' => ['settingGroupName' => 'availableThemes']]
+        ]
     ],
     'site-description' => [
         'name' => 'core::site-description',
@@ -72,6 +72,15 @@ return [
             'label' => 'core::settings.analytics-script',
             'type' => 'textarea',
             'rows' => 3,
+        ],
+    ],
+    'siteCleanedAt' => [
+        'name' => 'core::siteCleanedAt',
+        'value' => null,
+        'type' => 'fullDate',
+        'props' => [
+            'label' => 'core::settings.siteCleanedAt',
+
         ],
     ],
 ];
