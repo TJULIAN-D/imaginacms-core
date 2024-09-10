@@ -787,4 +787,10 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     {
       return method_exists($this->model, "forceDelete");
     }
+
+    public function updateOrCreate($data)
+    {
+      return $this->model->updateOrCreate($data);
+    }
+    
 }
