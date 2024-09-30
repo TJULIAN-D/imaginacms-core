@@ -46,7 +46,7 @@ class CrudResource extends JsonResource
 
     $attributes = array_merge($attributes, array_keys($this->getAttributes())); //get Attributes add extras non fillables attributes
 
-    $filter = json_decode($request->filter);//Get request Filters
+    $filter = is_string($request->filter) ? json_decode($request->filter) : (object)$request->filter;//Get request Filters
     $languages = \LaravelLocalization::getSupportedLocales();// Get site languages
     $excludeRelations = array_merge(['translations'], $this->excludeRelations);//No self-load this relations
 
