@@ -134,13 +134,15 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       $query->orWhere($fieldName, $filterOperator, $filterValue);
     } else if ($filterWhere == 'belongsToMany') {
       //Sub query to get data by pivot
-      $query->whereIn('id', function ($q) use ($filterData, $filterValue) {
-        //validate filter value
-        if (!is_array($filterValue)) $filterValue = [$filterValue];
-        //filter sub query
-        $q->select($filterData->foreignPivotKey)->from($filterData->table)
-          ->whereIn($filterData->relatedPivotKey, $filterValue);
-      });
+      if(is_array($filterValue) && count($filterValue)) {
+        $query->whereIn('id', function ($q) use ($filterData, $filterValue) {
+          //validate filter value
+          if (!is_array($filterValue)) $filterValue = [$filterValue];
+          //filter sub query
+          $q->select($filterData->foreignPivotKey)->from($filterData->table)
+            ->whereIn($filterData->relatedPivotKey, $filterValue);
+        });
+      }
     } else {
       $query->where($fieldName, $filterOperator, $filterValue);
     }
