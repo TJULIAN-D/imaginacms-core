@@ -134,7 +134,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       $query->orWhere($fieldName, $filterOperator, $filterValue);
     } else if ($filterWhere == 'belongsToMany') {
       //Sub query to get data by pivot
-      if(is_array($filterValue) && count($filterValue)) {
+      if (is_array($filterValue) && count($filterValue)) {
         $query->whereIn('id', function ($q) use ($filterData, $filterValue) {
           //validate filter value
           if (!is_array($filterValue)) $filterValue = [$filterValue];
@@ -342,6 +342,8 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
             if (in_array($filterNameSnake, $modelFillable)) {
               //instance an own filter way when the filter name is ID
               if ($filterNameSnake == "id") $filterValue = (object)["where" => 'in', "value" => (array)$filterValue];
+              //Validate if filter is an array put where as "in" type
+              if (is_array($filterValue) && !isset($filterValue['where'])) $filterValue = (object)["where" => 'in', "value" => $filterValue];
               //Set filter
               $query = $this->setFilterQuery($query, $filterValue, $filterNameSnake);
             }
@@ -456,7 +458,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
       // Set filter column for criteria
       $modelFields = array_diff($criteriaFields, $translatableAttributes);
-      if(count($modelFields)){
+      if (count($modelFields)) {
         $query->where(function ($query) use ($modelFields, $criteria) {
           foreach ($modelFields as $field) {
             $query->orWhere($field, $criteria);
