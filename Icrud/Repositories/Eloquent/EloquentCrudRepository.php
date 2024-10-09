@@ -10,6 +10,8 @@ use Modules\Ihelpers\Events\CreateMedia;
 use Modules\Ihelpers\Events\DeleteMedia;
 use Modules\Ihelpers\Events\UpdateMedia;
 
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 /**
  * Class EloquentCrudRepository
  *
@@ -804,7 +806,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
   private function hasSoftDeletes()
   {
-    return method_exists($this->model, "forceDelete");
+    return in_array(SoftDeletes::class, class_uses_recursive($this->model));
   }
 
   public function updateOrCreate($data)
