@@ -447,7 +447,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
       // Set filter column translatable for criteria
       $translatableFields = array_intersect($criteriaFields, $translatableAttributes);
-      if (count($translatableAttributes)) {
+      if (count($translatableFields)) {
         $query->whereHas('translations', function ($query) use ($criteria, $filter, $translatableFields) {
           $query->where('locale', $filter->locale ?? \App::getLocale())
             ->where(function ($query) use ($criteria, $translatableFields) {
