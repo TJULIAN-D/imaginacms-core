@@ -11,7 +11,6 @@ abstract class BaseCacheCrudDecorator extends BaseCacheDecorator implements Base
 {
   public function getItemsBy($params)
   {
-
     $query = $this->repository->getOrCreateQuery($params);
 
     return $this->remember(function () use ($params) {
@@ -29,7 +28,7 @@ abstract class BaseCacheCrudDecorator extends BaseCacheDecorator implements Base
     },$this->createKey($query, $params));
   }
 
-    public function getItemsByTransformed($models, $params)
+  public function getItemsByTransformed($models, $params)
     {
         $params->transformed = true;
         $query = $this->repository->getOrCreateQuery($params);
@@ -87,8 +86,15 @@ abstract class BaseCacheCrudDecorator extends BaseCacheDecorator implements Base
 
     return $this->repository->bulkCreate($data);
   }
-  public function createKey($query, $params){
 
+  public function getDashboard($params)
+  {
+    return $this->remember(function () use ($params) {
+      return $this->repository->getDashboard($params);
+    },$this->createKey(null, $params));
+  }
+
+  public function createKey($query, $params){
       $cacheKey = str_replace(["\"","`","{","}"],"",(($query ? $query->toSql() ?? "" : "") .
         (\serialize($query ? $query->getBindings() ?? "" : "") ).
         (!empty($params->filter) ? \serialize($params->filter) : "") .
@@ -113,5 +119,5 @@ abstract class BaseCacheCrudDecorator extends BaseCacheDecorator implements Base
 
     return $this->repository->updateOrCreate($data);
   }
-  
+
 }

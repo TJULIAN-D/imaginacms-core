@@ -5,292 +5,320 @@ namespace Modules\Core\Icrud\Controllers;
 use Illuminate\Http\Request;
 use Mockery\CountValidator\Exception;
 use Modules\Core\Icrud\Transformers\CrudResource;
+
 //Default transformer
 use Modules\Ihelpers\Http\Controllers\Api\BaseApiController;
 
 class BaseCrudController extends BaseApiController
 {
-    /**
-     * Controller to create model
-     *
-     * @return mixed
-     */
-    public function create(Request $request)
-    {
-        \DB::beginTransaction();
-        try {
-            //Get model data
-            $modelData = $request->input('attributes') ?? [];
+  /**
+   * Controller to create model
+   *
+   * @return mixed
+   */
+  public function create(Request $request)
+  {
+    \DB::beginTransaction();
+    try {
+      //Get model data
+      $modelData = $request->input('attributes') ?? [];
 
-            //Validate Request
-            if (isset($this->model->requestValidation['create'])) {
-                $this->validateRequestApi(new $this->model->requestValidation['create']($modelData));
-            }
+      //Validate Request
+      if (isset($this->model->requestValidation['create'])) {
+        $this->validateRequestApi(new $this->model->requestValidation['create']($modelData));
+      }
 
-            //Create model
-            $model = $this->modelRepository->create($modelData);
+      //Create model
+      $model = $this->modelRepository->create($modelData);
 
-            //Response
-            $response = ['data' => CrudResource::transformData($model)];
-            \DB::commit(); //Commit to Data Base
-        } catch (\Exception $e) {
-            \DB::rollback(); //Rollback to Data Base
-            $status = $this->getStatusError($e->getCode());
-            $response = ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
-        }
-        //Return response
-        return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+      //Response
+      $response = ['data' => CrudResource::transformData($model)];
+      \DB::commit(); //Commit to Data Base
+    } catch (\Exception $e) {
+      \DB::rollback(); //Rollback to Data Base
+      $status = $this->getStatusError($e->getCode());
+      $response = ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
+    }
+    //Return response
+    return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+  }
+
+  /**
+   * Controller To request all model data
+   *
+   * @return mixed
+   */
+  public function index(Request $request)
+  {
+    try {
+      //Get Parameters from request
+      $params = $this->getParamsRequest($request);
+
+      //Request data to Repository
+      $models = $this->modelRepository->getItemsBy($params);
+
+      //Response
+      $response = ['data' => $this->modelRepository->getItemsByTransformed($models, $params)];
+
+      //If request pagination add meta-page
+      $params->page ? $response['meta'] = ['page' => $this->pageTransformer($models)] : false;
+    } catch (\Exception $e) {
+      $status = $this->getStatusError($e->getCode());
+      $response = $status == 409 ? json_decode($e->getMessage()) :
+        ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
     }
 
-    /**
-     * Controller To request all model data
-     *
-     * @return mixed
-     */
-    public function index(Request $request)
-    {
-        try {
-            //Get Parameters from request
-            $params = $this->getParamsRequest($request);
+    //Return response
+    return response($response ?? ['data' => 'Request successful'], $status ?? 200);
+  }
 
-            //Request data to Repository
-            $models = $this->modelRepository->getItemsBy($params);
+  /**
+   * Controller to request model by criteria
+   *
+   * @return mixed
+   */
+  public function show($criteria, Request $request)
+  {
+    try {
+      //Get Parameters from request
+      $params = $this->getParamsRequest($request);
 
-            //Response
-            $response = ['data' => $this->modelRepository->getItemsByTransformed($models, $params)];
+      //Request data to Repository
+      $model = $this->modelRepository->getItem($criteria, $params);
 
-            //If request pagination add meta-page
-            $params->page ? $response['meta'] = ['page' => $this->pageTransformer($models)] : false;
-        } catch (\Exception $e) {
-            $status = $this->getStatusError($e->getCode());
-            $response = $status == 409 ? json_decode($e->getMessage()) :
-              ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
-        }
+      //Throw exception if no found item
+      if (!$model) {
+        throw new Exception('Item not found', 204);
+      }
 
-        //Return response
-        return response($response ?? ['data' => 'Request successful'], $status ?? 200);
+      //Response
+      $response = ['data' => CrudResource::transformData($model)];
+    } catch (\Exception $e) {
+      $status = $this->getStatusError($e->getCode());
+      $response = ['errors' => $e->getMessage()];
     }
 
-    /**
-     * Controller to request model by criteria
-     *
-     * @return mixed
-     */
-    public function show($criteria, Request $request)
-    {
-        try {
-            //Get Parameters from request
-            $params = $this->getParamsRequest($request);
+    //Return response
+    return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+  }
 
-            //Request data to Repository
-            $model = $this->modelRepository->getItem($criteria, $params);
+  /**
+   * Controller to update model by criteria
+   *
+   * @return mixed
+   */
+  public function update($criteria, Request $request)
+  {
+    \DB::beginTransaction(); //DB Transaction
+    try {
+      //Get model data
+      $modelData = $request->input('attributes') ?? [];
+      //Get Parameters from URL.
+      $params = $this->getParamsRequest($request);
 
-            //Throw exception if no found item
-            if (! $model) {
-                throw new Exception('Item not found', 204);
-            }
+      //auto-insert the criteria in the data to update
+      isset($params->filter->field) ? $field = $params->filter->field : $field = 'id';
+      $data[$field] = $criteria;
 
-            //Response
-            $response = ['data' => CrudResource::transformData($model)];
-        } catch (\Exception $e) {
-            $status = $this->getStatusError($e->getCode());
-            $response = ['errors' => $e->getMessage()];
-        }
+      //Validate Request
+      if (isset($this->model->requestValidation['update'])) {
+        $this->validateRequestApi(new $this->model->requestValidation['update']($modelData));
+      }
 
-        //Return response
-        return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+      //Update model
+      $model = $this->modelRepository->updateBy($criteria, $modelData, $params);
+
+      //Throw exception if no found item
+      if (!$model) {
+        throw new Exception('Item not found', 204);
+      }
+
+      //Response
+      $response = ['data' => CrudResource::transformData($model)];
+      \DB::commit(); //Commit to DataBase
+    } catch (\Exception $e) {
+      \DB::rollback(); //Rollback to Data Base
+      $status = $this->getStatusError($e->getCode());
+      $response = $status == 409 ? json_decode($e->getMessage()) :
+        ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
     }
 
-    /**
-     * Controller to update model by criteria
-     *
-     * @return mixed
-     */
-    public function update($criteria, Request $request)
-    {
-        \DB::beginTransaction(); //DB Transaction
-        try {
-            //Get model data
-            $modelData = $request->input('attributes') ?? [];
-            //Get Parameters from URL.
-            $params = $this->getParamsRequest($request);
+    //Return response
+    return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+  }
 
-            //auto-insert the criteria in the data to update
-            isset($params->filter->field) ? $field = $params->filter->field : $field = 'id';
-            $data[$field] = $criteria;
+  /**
+   * Controller to delete model by criteria
+   *
+   * @return mixed
+   */
+  public function delete($criteria, Request $request)
+  {
+    \DB::beginTransaction();
+    try {
+      //Get params
+      $params = $this->getParamsRequest($request);
 
-            //Validate Request
-            if (isset($this->model->requestValidation['update'])) {
-                $this->validateRequestApi(new $this->model->requestValidation['update']($modelData));
-            }
+      //Delete methomodel
+      $this->modelRepository->deleteBy($criteria, $params);
 
-            //Update model
-            $model = $this->modelRepository->updateBy($criteria, $modelData, $params);
-
-            //Throw exception if no found item
-            if (! $model) {
-                throw new Exception('Item not found', 204);
-            }
-
-            //Response
-            $response = ['data' => CrudResource::transformData($model)];
-            \DB::commit(); //Commit to DataBase
-        } catch (\Exception $e) {
-            \DB::rollback(); //Rollback to Data Base
-            $status = $this->getStatusError($e->getCode());
-            $response = $status == 409 ? json_decode($e->getMessage()) :
-              ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
-        }
-
-        //Return response
-        return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+      //Response
+      $response = ['data' => 'Item deleted'];
+      \DB::commit(); //Commit to Data Base
+    } catch (\Exception $e) {
+      \DB::rollback(); //Rollback to Data Base
+      $status = $this->getStatusError($e->getCode());
+      $response = ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
     }
 
-    /**
-     * Controller to delete model by criteria
-     *
-     * @return mixed
-     */
-    public function delete($criteria, Request $request)
-    {
-        \DB::beginTransaction();
-        try {
-            //Get params
-            $params = $this->getParamsRequest($request);
+    //Return response
+    return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+  }
 
-            //Delete methomodel
-            $this->modelRepository->deleteBy($criteria, $params);
+  /**
+   * Controller to delete model by criteria
+   *
+   * @return mixed
+   */
+  public function restore($criteria, Request $request)
+  {
+    \DB::beginTransaction();
+    try {
+      //Get params
+      $params = $this->getParamsRequest($request);
 
-            //Response
-            $response = ['data' => 'Item deleted'];
-            \DB::commit(); //Commit to Data Base
-        } catch (\Exception $e) {
-            \DB::rollback(); //Rollback to Data Base
-            $status = $this->getStatusError($e->getCode());
-            $response = ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
-        }
+      //Delete methomodel
+      $model = $this->modelRepository->restoreBy($criteria, $params);
 
-        //Return response
-        return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+      //Throw exception if no found item
+      if (!$model) {
+        throw new Exception('Item not found', 204);
+      }
+
+      //Response
+      $response = ['data' => CrudResource::transformData($model)];
+      \DB::commit(); //Commit to Data Base
+    } catch (\Exception $e) {
+      \DB::rollback(); //Rollback to Data Base
+      $status = $this->getStatusError($e->getCode());
+      $response = ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
     }
 
-    /**
-     * Controller to delete model by criteria
-     *
-     * @return mixed
-     */
-    public function restore($criteria, Request $request)
-    {
-        \DB::beginTransaction();
-        try {
-            //Get params
-            $params = $this->getParamsRequest($request);
+    //Return response
+    return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+  }
 
-            //Delete methomodel
-            $model = $this->modelRepository->restoreBy($criteria, $params);
+  /**
+   * Controller to do a bulk order of a model
+   *
+   * @return mixed
+   */
+  public function bulkOrder(Request $request)
+  {
+    \DB::beginTransaction(); //DB Transaction
+    try {
+      //Get model data
+      $data = $request->input('attributes') ?? [];
+      //Get Parameters from URL.
+      $params = $this->getParamsRequest($request);
 
-            //Throw exception if no found item
-            if (! $model) {
-                throw new Exception('Item not found', 204);
-            }
+      //Update model
+      $bulkOrderResult = $this->modelRepository->bulkOrder($data, $params);
 
-            //Response
-            $response = ['data' => CrudResource::transformData($model)];
-            \DB::commit(); //Commit to Data Base
-        } catch (\Exception $e) {
-            \DB::rollback(); //Rollback to Data Base
-            $status = $this->getStatusError($e->getCode());
-            $response = ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
-        }
-
-        //Return response
-        return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+      //Response
+      $response = ['data' => CrudResource::transformData($bulkOrderResult)];
+      \DB::commit(); //Commit to DataBase
+    } catch (\Exception $e) {
+      \DB::rollback(); //Rollback to Data Base
+      $status = $this->getStatusError($e->getCode());
+      $response = ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
     }
 
-    /**
-     * Controller to do a bulk order of a model
-     *
-     * @return mixed
-     */
-    public function bulkOrder(Request $request)
-    {
-        \DB::beginTransaction(); //DB Transaction
-        try {
-            //Get model data
-            $data = $request->input('attributes') ?? [];
-            //Get Parameters from URL.
-            $params = $this->getParamsRequest($request);
+    //Return response
+    return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+  }
 
-            //Update model
-            $bulkOrderResult = $this->modelRepository->bulkOrder($data, $params);
+  /**
+   * Controller to request all model data from a static entity
+   *
+   * @param $entityClass
+   * @return mixed
+   */
+  public function indexStatic(Request $request, $params)
+  {
+    try {
+      //Instance model
+      $model = app($params['entityClass']);
 
-            //Response
-            $response = ['data' => CrudResource::transformData($bulkOrderResult)];
-            \DB::commit(); //Commit to DataBase
-        } catch (\Exception $e) {
-            \DB::rollback(); //Rollback to Data Base
-            $status = $this->getStatusError($e->getCode());
-            $response = ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
-        }
+      //Request data
+      $method = $params['method'] ?? 'index';
+      $models = $model->$method();
 
-        //Return response
-        return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+      //Response
+      $response = ['data' => $models];
+    } catch (\Exception $e) {
+      \Log::Error($e);
+      $response = ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
     }
 
-    /**
-     * Controller to request all model data from a static entity
-     *
-     * @param $entityClass
-     * @return mixed
-     */
-    public function indexStatic(Request $request, $params)
-    {
-        try {
-            //Instance model
-            $model = app($params['entityClass']);
+    //Return response
+    return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+  }
 
-            //Request data
-            $method = $params['method'] ?? 'index';
-            $models = $model->$method();
+  /**
+   * Controller to request all model data from a static entity
+   *
+   * @param $entityClass
+   * @return mixed
+   */
+  public function showStatic($criteria, Request $request, $params)
+  {
+    try {
+      //Instance model
+      $model = app($params['entityClass']);
 
-            //Response
-            $response = ['data' => $models];
-        } catch (\Exception $e) {
-            \Log::Error($e);
-            $response = ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
-        }
+      //Request data
+      $method = $params['method'] ?? 'show';
+      $item = $model->$method($criteria);
 
-        //Return response
-        return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+      //Throw exception if no found item
+      if (!$item) throw new Exception('Item not found', 204);
+
+      //Response
+      $response = ['data' => $item];
+    } catch (\Exception $e) {
+      $status = $this->getStatusError($e->getCode());
+      $response = ["errors" => $e->getMessage()];
     }
 
-    /**
-     * Controller to request all model data from a static entity
-     *
-     * @param $entityClass
-     * @return mixed
-     */
-    public function showStatic($criteria, Request $request, $params)
-    {
-        try {
-            //Instance model
-            $model = app($params['entityClass']);
+    //Return response
+    return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+  }
 
-            //Request data
-            $method = $params['method'] ?? 'show';
-            $item = $model->$method($criteria);
+  /**
+   * Controller to request all model dashboard
+   *
+   * @param $entityClass
+   * @return mixed
+   */
+  public function dashboardIndex(Request $request)
+  {
+    try {
+      //Get Parameters from request
+      $params = $this->getParamsRequest($request);
 
-            //Throw exception if no found item
-            if(!$item) throw new Exception('Item not found', 204);
+      //Request data to Repository
+      $dashboardData = $this->modelRepository->getDashboard($params);
 
-            //Response
-            $response = ['data' => $item];
-        } catch (\Exception $e) {
-            $status = $this->getStatusError($e->getCode());
-            $response = ["errors" => $e->getMessage()];
-        }
-
-        //Return response
-        return response()->json($response ?? ['data' => 'Request successful'], $status ?? 200);
+      //Response
+      $response = ['data' => $dashboardData];
+    } catch (\Exception $e) {
+      $status = $this->getStatusError($e->getCode());
+      $response = $status == 409 ? json_decode($e->getMessage()) :
+        ['messages' => [['message' => $e->getMessage(), 'type' => 'error']]];
     }
+
+    //Return response
+    return response($response ?? ['data' => 'Request successful'], $status ?? 200);
+  }
 }

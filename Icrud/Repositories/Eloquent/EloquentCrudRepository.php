@@ -813,4 +813,15 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   {
     return $this->model->updateOrCreate($data);
   }
+
+  /**
+   * Return a dashboard information
+   *
+   * @param $params
+   * @return array
+   */
+  public function getDashboard($params)
+  {
+    return [];
+  }
 }

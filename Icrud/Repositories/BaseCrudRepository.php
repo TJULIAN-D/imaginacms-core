@@ -60,5 +60,9 @@ interface BaseCrudRepository extends BaseRepository
    * @return mixed
    */
   public function updateOrCreate($data);
-  
+
+  /**
+   * @return mixed
+   */
+  public function getDashboard($params);
 }
