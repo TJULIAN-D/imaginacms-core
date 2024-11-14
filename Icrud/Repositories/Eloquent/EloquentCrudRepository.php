@@ -78,14 +78,18 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
    * @param $query
    * @param $relations
    */
-  public function includeToQuery($query, $relations, $method = null)
+  public function includeToQuery($query, $params, $method = null)
   {
+    $relations = $params->include ?? [];
+    $withoutDefaultInclude = ($params->filter && $params->filter->withoutDefaultInclude) ?? false;
     //request all categories instances in the "relations" attribute in the entity model
     if (in_array('*', $relations)) $relations = $this->model->getRelations() ?? [];
     else { // Set default Relations
-      $relations = array_merge($relations, ($this->with['all'] ?? [])); // Include all default relations
-      if ($method == 'show') $relations = array_merge($relations, ($this->with['show'] ?? [])); // include show default relations
-      if ($method == 'index') $relations = array_merge($relations, ($this->with['index'] ?? [])); // include index default reltaion
+      if (!$withoutDefaultInclude) {
+        $relations = array_merge($relations, ($this->with['all'] ?? [])); // Include all default relations
+        if ($method == 'show') $relations = array_merge($relations, ($this->with['show'] ?? [])); // include show default relations
+        if ($method == 'index') $relations = array_merge($relations, ($this->with['index'] ?? [])); // include index default reltaion
+      }
     }
     //Instance relations in query
     $query->with(array_unique($relations));
@@ -320,7 +324,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       $query = $this->model->query();
 
       //Include relationships
-      $query = $this->includeToQuery($query, ($params->include ?? []), "index");
+      $query = $this->includeToQuery($query, $params, "index");
 
       //Filter Query
       if (isset($params->filter)) {
@@ -439,7 +443,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
       $query = $this->model->query();
 
       //Include relationships
-      $query = $this->includeToQuery($query, ($params->include ?? []), "show");
+      $query = $this->includeToQuery($query, $params, "show");
 
       //Get fields to use as criteria filter
       $criteriaFields = $params->filter->field ?? ['id'];
