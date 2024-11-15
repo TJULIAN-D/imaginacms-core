@@ -81,7 +81,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   public function includeToQuery($query, $params, $method = null)
   {
     $relations = $params->include ?? [];
-    $withoutDefaultInclude = ($params->filter && $params->filter->withoutDefaultInclude) ?? false;
+    $withoutDefaultInclude = isset($params->filter->withoutDefaultInclude) ? $params->filter->withoutDefaultInclude : false;
     //request all categories instances in the "relations" attribute in the entity model
     if (in_array('*', $relations)) $relations = $this->model->getRelations() ?? [];
     else { // Set default Relations
