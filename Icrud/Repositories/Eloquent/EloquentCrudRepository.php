@@ -91,6 +91,10 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
         if ($method == 'index') $relations = array_merge($relations, ($this->with['index'] ?? [])); // include index default reltaion
       }
     }
+    //Filter valid Relations if is possible
+    if (method_exists($this->model, 'filterValidRelations')) {
+      $relations = $this->model->filterValidRelations($relations);
+    }
     //Instance relations in query
     $query->with(array_unique($relations));
     //Response
