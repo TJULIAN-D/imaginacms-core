@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Modules\Media\Transformers\NewTransformers\MediaTransformer;
 use  Modules\Isite\Transformers\RevisionTransformer;
+use Modules\Iprofile\Transformers\UserTransformer;
 
 class CrudResource extends JsonResource
 {
@@ -111,6 +112,11 @@ class CrudResource extends JsonResource
         if (($relationName == 'tags') && method_exists($this->resource, 'getNameTags')) {
           $response['tags'] = $this->getNameTags();
         }
+
+        if (($relationName == 'creator') && method_exists($this->resource, 'creator')) {
+          $response['creator'] = new UserTransformer($this->whenLoaded('creator'));
+        }
+
       }
     }
 
