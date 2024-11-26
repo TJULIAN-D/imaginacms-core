@@ -113,7 +113,8 @@ trait HasOptionalTraits
     foreach ($events as $eventName => $methodName) {
       // Register the event listener dynamically
       static::registerModelEvent($eventName, function ($event) use ($dynamicClass, $methodName, $eventName) {
-        $modelParams = str_contains($eventName, 'WithBindings') ? $event->getEventBindings($eventName) : $event;
+        $modelParams = !str_contains($eventName, 'WithBindings') ? $event :
+          ['bindings' => $event->getEventBindings($eventName), 'model' => $event];
         return $dynamicClass->{$methodName}($modelParams);
       });
     }
