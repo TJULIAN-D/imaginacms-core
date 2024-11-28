@@ -442,6 +442,10 @@ class CoreServiceProvider extends ServiceProvider
                 $this->integer('deleted_by')->unsigned()->nullable();
                 $this->foreign('deleted_by')->references('id')->on(config('auth.table', 'users'))->onDelete('restrict');
             }
+            //External_id
+            if (! \Schema::hasColumn($this->getTable(), 'external_id')) {
+                $this->string('external_id')->nullable();
+            }
             //Organization id
             $organizationTable = 'isite__organizations';
             if ($this->getTable() != $organizationTable) {
