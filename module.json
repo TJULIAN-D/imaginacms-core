@@ -12,7 +12,8 @@
         "Modules\\Core\\Providers\\SidebarServiceProvider",
         "Modules\\Core\\Providers\\AssetServiceProvider",
         "FloatingPoint\\Stylist\\StylistServiceProvider",
-        "Maatwebsite\\Sidebar\\SidebarServiceProvider"
+        "Maatwebsite\\Sidebar\\SidebarServiceProvider",
+        "Modules\\Core\\Providers\\ScheduleServiceProvider"
     ],
     "aliases": {
         "AsgardEditorDirective": "Modules\\Core\\Blade\\Facades\\AsgardEditorDirective"
