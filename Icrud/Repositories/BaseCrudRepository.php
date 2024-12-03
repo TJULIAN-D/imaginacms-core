@@ -59,7 +59,7 @@ interface BaseCrudRepository extends BaseRepository
    * @param $data
    * @return mixed
    */
-  public function updateOrCreate($data);
+  public function updateOrCreate($validation, $data);
 
   /**
    * @return mixed

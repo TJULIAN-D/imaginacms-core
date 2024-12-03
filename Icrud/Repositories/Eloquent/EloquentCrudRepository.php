@@ -819,9 +819,9 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     return in_array(SoftDeletes::class, class_uses_recursive($this->model));
   }
 
-  public function updateOrCreate($data)
+  public function updateOrCreate($validationData, $data)
   {
-    return $this->model->updateOrCreate($data);
+    return $this->model->updateOrCreate($validationData, $data);
   }
 
   /**
