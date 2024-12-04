@@ -7,27 +7,23 @@ use http\Params;
 
 trait SingleFlaggable
 {
+  private $modelData;
+  private $isTheSingleFlag;
   private $params;
 
   public static function bootSingleFlaggable()
   {
     //Listen event after create model
     static::createdWithBindings(function ($model) {
-      //Instance the params
-      $model->instanceParams();
-      $model->setSingleFlag();
+      $model->handleSingleFlag('created');
     });
     //Listen event after update model
     static::updatedWithBindings(function ($model) {
-      //Instance the params
-      $model->instanceParams();
-      $model->setSingleFlag();
+      $model->handleSingleFlag('updated');
     });
 
     static::deleted(function ($model) {
-      //Instance the params
-      $model->instanceParams();
-      $model->setWhenDeleteSingleFlag();
+      $model->handleSingleFlag('deleted');
     });
   }
 
@@ -36,7 +32,7 @@ trait SingleFlaggable
    *
    * @return void
    */
-  private function instanceParams()
+  private function handleSingleFlag($eventName)
   {
     $this->params = (object)[
       'singleFlagName' => $this->singleFlagName ?? 'default',
@@ -45,7 +41,17 @@ trait SingleFlaggable
       'singleFlagFalseValue' => $this->singleFlagFalseValue ?? 0,
       'isEnableSingleFlaggable' => $this->isEnableSingleFlaggable ?? true
     ];
+    $this->modelData = $this->toArray();
+    $this->isTheSingleFlag = ($this->modelData[$this->params->singleFlagName] == $this->params->singleFlagTrueValue);
+
+    //Handle the flag
+    if ($this->canManageFlag()) {
+      if ($eventName == 'deleted') {
+        if ($this->isTheSingleFlag) $this->chooseDynamicFlag();
+      } else $this->setSingleFlag();
+    }
   }
+
 
   /**
    * Validates if the flag can be managed
@@ -54,15 +60,15 @@ trait SingleFlaggable
    * @return bool
    * @throws \Exception
    */
-  public function canManageFlag($data)
+  public function canManageFlag()
   {
     //Check if flag name exists in data
-    if(!isset($data[$this->params->singleFlagName])) return false;
-    //Check if the flag name is equal to true value
-    if($data[$this->params->singleFlagName] != $this->params->singleFlagTrueValue) return false;
+    if (!isset($this->modelData[$this->params->singleFlagName])) return false;
+    //Check isEnableSingleFlaggable
+    if (!$this->params->isEnableSingleFlaggable) return false;
     //Validate that all singleFlaggableCombination are in data
-    $missingColumns = array_diff($this->params->singleFlaggableCombination, array_keys($data));
-    if (!empty($missingColumns)){
+    $missingColumns = array_diff($this->params->singleFlaggableCombination, array_keys($this->modelData));
+    if (!empty($missingColumns)) {
       $errorMsg = trans("core::common.columnsNotFound", ['columns' => implode(', ', $missingColumns)]);
       throw new \Exception($errorMsg, 500);
     }
@@ -79,21 +85,31 @@ trait SingleFlaggable
    */
   public function setSingleFlag()
   {
-    //Returns if not enabled
-    if(!$this->params->isEnableSingleFlaggable) return;
-    $data = $this->toArray();
-
-    //Validates if the flag can be managed
-    if ($this->canManageFlag($data)) {
-      $query = static::where('id', '!=', $data["id"]);
+    $repository = app($this->repository);
+    //If it is the new flag remove others flags
+    if ($this->isTheSingleFlag) {
+      $query = static::where('id', '!=', $this->modelData["id"]);
 
       // Including contitions for each combination
-      foreach ($this->params->singleFlaggableCombination as $columnName){
-        $query->where($columnName, $data[$columnName]);
+      foreach ($this->params->singleFlaggableCombination as $columnName) {
+        $query->where($columnName, $this->modelData[$columnName]);
       }
 
       //Set false value
       $query->update([$this->params->singleFlagName => $this->params->singleFlagFalseValue]);
+    } else if ($this->repository) {//Check if there a single flag else choose one
+      //Init params
+      $params = ['take' => 1, 'filter' => [
+        'id' => ['operator' => '!=', 'value' => $this->modelData['id']],
+        $this->params->singleFlagName => $this->params->singleFlagTrueValue
+      ]];
+      // Including contitions for each combination
+      foreach ($this->params->singleFlaggableCombination as $columnName) {
+        $params['filter'][$columnName] = $this->modelData[$columnName];
+      }
+      //if no exista  single flag,choose one
+      $existSingleFlag = $repository->getItemsBy(json_decode(json_encode($params)));
+      if (!$existSingleFlag->first()) $this->chooseDynamicFlag();
     }
   }
 
@@ -103,27 +119,18 @@ trait SingleFlaggable
    * @return void
    * @throws \Exception
    */
-  private function setWhenDeleteSingleFlag()
+  private function chooseDynamicFlag()
   {
-    //Returns if not enabled
-    if(!$this->params->isEnableSingleFlaggable) return;
-    //Get the this like array
-    $data = $this->toArray();
+    $query = static::where('id', '!=', $this->modelData['id']);
 
-    //Validates if the flag can be managed
-    if ($this->canManageFlag($data)) {
-      $query = static::where('id', '!=', $data['id']);
-
-      // Including contitions for each combination
-      foreach ($this->params->singleFlaggableCombination as $columnName){
-        $query->where($columnName, $data[$columnName]);
-      }
-
-      //Update the first record it finds
-      $query->take(1)->update([$this->params->singleFlagName => $this->params->singleFlagTrueValue]);
-      //remove default value to deleted record
-      $this->update([$this->params->singleFlagName => $this->params->singleFlagFalseValue]);
+    // Including contitions for each combination
+    foreach ($this->params->singleFlaggableCombination as $columnName) {
+      $query->where($columnName, $this->modelData[$columnName]);
     }
-  }
 
+    //Update the first record it finds
+    $query->take(1)->update([$this->params->singleFlagName => $this->params->singleFlagTrueValue]);
+    //remove default value to deleted record
+    $this->update([$this->params->singleFlagName => $this->params->singleFlagFalseValue]);
+  }
 }
