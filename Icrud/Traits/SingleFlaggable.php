@@ -42,10 +42,10 @@ trait SingleFlaggable
       'isEnableSingleFlaggable' => $this->isEnableSingleFlaggable ?? true
     ];
     $this->modelData = $this->toArray();
-    $this->isTheSingleFlag = ($this->modelData[$this->params->singleFlagName] == $this->params->singleFlagTrueValue);
 
     //Handle the flag
     if ($this->canManageFlag()) {
+      $this->isTheSingleFlag = ($this->modelData[$this->params->singleFlagName] == $this->params->singleFlagTrueValue);
       if ($eventName == 'deleted') {
         if ($this->isTheSingleFlag) $this->chooseDynamicFlag();
       } else $this->setSingleFlag();
