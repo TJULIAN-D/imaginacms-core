@@ -122,21 +122,28 @@ class CrudResource extends JsonResource
 
 
     //Add magic attributes
+    $magicAttributes = [];
     foreach (get_class_methods($this->resource) as $methodName) {
-      // if the method starts with get and ends with Attribute
-      // excepting base method "getAttribute"
-      if (!in_array($methodName, array_keys($response))) {
-        if (Str::startsWith($methodName, "get") && Str::endsWith($methodName, "Attribute")
-          && $methodName != "getAttribute") {
-
-          //removing "get" and "Attribute" to get the real attribute name
-          $attributeName = Str::replace(["get", "Attribute"], ["", ""], $methodName);
-
-          //avoid the magic methods of the fillables
-          if (!in_array(Str::snake($attributeName), array_merge($attributes, $translatableAttributes))) {
-            $response[Str::camel($attributeName)] = $this->{$methodName}();
-          }
+      // if the method starts with get and ends with Attribute excepting base method "getAttribute"
+      if (!in_array($methodName, array_keys($response)) && ($methodName != "getAttribute")) {
+        if (Str::startsWith($methodName, "get") && Str::endsWith($methodName, "Attribute")) {
+          $magicAttributes[$methodName] = 'model';
         }
+      }
+      //Get attributes from optional traits
+      if ($methodName == "getOptionalTraitInformation") {
+        $magicAttributes = array_merge($magicAttributes, $this->getOptionalTraitInformation()['attributes']);
+      }
+    }
+
+    // Map the magic attributes
+    foreach ($magicAttributes as $attribute => $value) {
+      //removing "get" and "Attribute" to get the real attribute name
+      $attributeName = Str::replace(["get", "Attribute"], ["", ""], $attribute);
+
+      //avoid the magic methods of the fillables
+      if (!in_array(Str::snake($attributeName), array_merge($attributes, $translatableAttributes))) {
+        $response[Str::camel($attributeName)] = ($value == 'model') ? $this->{$attribute}() : $this->optionalTraitAttribute($attributeName);
       }
     }
 

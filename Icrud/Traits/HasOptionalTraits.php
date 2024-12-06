@@ -25,6 +25,7 @@ trait HasOptionalTraits
    */
   private static $optionalTraitsMethods = [];
   private static $optionalTraitsRelations = [];
+  private static $optionalTraitsAttributes = [];
 
 
   /**
@@ -60,10 +61,10 @@ trait HasOptionalTraits
       $instances = $dynamicClass->getInstances();
 
       // Initialize relations, methods, and event listeners
-
       static::instanceRelations($dynamicClass, $instances['relations'] ?? []);
       static::instanceMethods($dynamicClass, $instances['methods'] ?? []);
       static::instanceEventListeners($dynamicClass, $instances['events'] ?? []);
+      static::instanceGetAttributes($dynamicClass, $instances['getAttributes'] ?? []);
     }
   }
 
@@ -121,6 +122,23 @@ trait HasOptionalTraits
   }
 
   /**
+   * Adds dynamic attributes to the model.
+   *
+   * @param object $dynamicClass The dynamic class providing the methods.
+   * @param array $methods List of method names to be added to the model.
+   */
+  protected static function instanceGetAttributes($dynamicClass, $attributes)
+  {
+    foreach ($attributes as $attributeName) {
+      if (!isset(static::$optionalTraitsAttributes[$attributeName])) {
+        static::$optionalTraitsAttributes[$attributeName] = function ($model, ...$params) use ($dynamicClass, $attributeName) {
+          return $dynamicClass->{$attributeName}($model);
+        };
+      }
+    }
+  }
+
+  /**
    * Executes a dynamically added method on the model.
    *
    */
@@ -142,6 +160,33 @@ trait HasOptionalTraits
       return $asFunction ? $this->{$relation}() : $this->{$relation};
     }
     return null;
+  }
+
+  /**
+   * Executes a dynamically added attribute on the model.
+   *
+   */
+  public function optionalTraitAttribute($attribute, $defaultResponse = null)
+  {
+    $key = 'get' . ucfirst($attribute) . 'Attribute';
+    if (isset(static::$optionalTraitsAttributes[$key])) {
+      return static::$optionalTraitsAttributes[$key]($this);
+    }
+
+    return $defaultResponse;
+  }
+
+  /**
+   * Return the optionalTrait information
+   * @return array
+   */
+  public function getOptionalTraitInformation()
+  {
+    return [
+      'methods' => static::$optionalTraitsMethods,
+      'relations' => static::$optionalTraitsRelations,
+      'attributes' => static::$optionalTraitsAttributes
+    ];
   }
 
   /**
