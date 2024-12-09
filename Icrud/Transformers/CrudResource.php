@@ -50,13 +50,13 @@ class CrudResource extends JsonResource
     $filter = is_string($request->filter) ? json_decode($request->filter) : (object)$request->filter;//Get request Filters
     $languages = \LaravelLocalization::getSupportedLocales();// Get site languages
     $excludeRelations = array_merge(['translations'], $this->excludeRelations);//No self-load this relations
-
+    $excludeAttributes = ['password'];
     //Get model attribute form module
     $response = $this->modelAttributes($request);
 
     //Add attributes
     foreach ($attributes as $fieldName) {
-      if (!in_array($fieldName, array_keys($response))) {
+      if (!in_array($fieldName, array_keys($response)) && !in_array($fieldName, $excludeAttributes)) {
         $response[snakeToCamel($fieldName)] = $this->when(
           (isset($this[$fieldName]) || is_null($this[$fieldName])),
           $this[$fieldName]
@@ -112,11 +112,6 @@ class CrudResource extends JsonResource
         if (($relationName == 'tags') && method_exists($this->resource, 'getNameTags')) {
           $response['tags'] = $this->getNameTags();
         }
-
-        if (($relationName == 'creator') && method_exists($this->resource, 'creator')) {
-          $response['creator'] = new UserTransformer($this->whenLoaded('creator'));
-        }
-
       }
     }
 
