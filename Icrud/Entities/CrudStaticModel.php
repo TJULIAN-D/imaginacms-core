@@ -33,8 +33,9 @@ class CrudStaticModel
         $response = $response->whereIn($name, $value);
       }
     }
+
     //Repsonse
-    return $response;
+    return $response->values();
   }
 
   public function show($statusId)
