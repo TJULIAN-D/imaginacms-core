@@ -212,8 +212,8 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
   {
     $modelRelations = [];
     foreach (($this->model->modelRelations ?? []) as $name => $value) {
-      if (is_string($value)) $modelRelations[$name] = ['type' => $value];
-      else if (is_array($value) && isset($value['type'])) $modelRelations[$name] = $value;
+      if (is_string($value)) $modelRelations[$name] = ['relation' => $value];
+      else if (is_array($value) && isset($value['relation'])) $modelRelations[$name] = $value;
     }
     return $modelRelations;
   }
@@ -229,7 +229,39 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
     foreach ($this->getModelRelations() as $relationName => $relation) {
       // Check if exist relation in data
       if (!in_array($relationName, $this->replaceSyncModelRelations) && array_key_exists($relationName, $data)) {
-        switch ($relation['type']) {
+        //Sync as updateOrCreateMany
+        if ($relation['type'] == 'updateOrCreateMany') {
+          if (isset($relation['compareKeys']) && is_array($relation['compareKeys'])) {
+            //Instance the relation
+            $relationInstance = $model->$relationName();
+            // Get the related repository
+            $relatedRepository = $relationInstance->getRelated()->repository ?? null;
+            // Dynamically determine the foreign key for the relation
+            $foreignKey = $relation['foreignKey'] ?? (method_exists($relationInstance, 'getForeignKeyName')
+              ? $relationInstance->getForeignKeyName()
+              : null);
+
+            if ($relatedRepository && $foreignKey) {
+              //Init the related repository
+              $relatedRepository = app($relatedRepository);
+              //update or create each related record
+              foreach ($data[$relationName] as $item) {
+                // Validate that all compare keys exist in the item
+                $missingKeys = array_diff($relation['compareKeys'], array_keys($item));
+                //Validate
+                if (empty($missingKeys)) {
+                  // Build the comparison array dynamically
+                  $compare = array_merge([$foreignKey => $model->id], array_intersect_key($item, array_flip($relation['compareKeys'])));
+                  // Use updateOrCreate with the dynamic compare keys
+                  $relatedRepository->updateOrCreate($compare, $item);
+                }
+              }
+            }
+          }
+          break;
+        }
+        //Default laravel relation
+        switch ($relation['relation']) {
           // Sync Has Many relation
           case 'hasMany':
             // Validate if exist relation with items
@@ -241,36 +273,6 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
           case 'belongsToMany':
             $model->$relationName()->sync($data[$relationName]);
             $model->setRelation($relationName, $model->$relationName);
-            break;
-          // update or create relation
-          case 'updateOrCreateMany':
-            if (isset($relation['compareKeys']) && is_array($relation['compareKeys'])) {
-              //Instance the relation
-              $relationInstance = $model->$relationName();
-              // Get the related repository
-              $relatedRepository = $relationInstance->getRelated()->repository ?? null;
-              // Dynamically determine the foreign key for the relation
-              $foreignKey = $relation['foreignKey'] ?? (method_exists($relationInstance, 'getForeignKeyName')
-                ? $relationInstance->getForeignKeyName()
-                : null);
-
-              if ($relatedRepository && $foreignKey) {
-                //Init the related repository
-                $relatedRepository = app($relatedRepository);
-                //update or create each related record
-                foreach ($data[$relationName] as $item) {
-                  // Validate that all compare keys exist in the item
-                  $missingKeys = array_diff($relation['compareKeys'], array_keys($item));
-                  //Validate
-                  if (empty($missingKeys)) {
-                    // Build the comparison array dynamically
-                    $compare = [$foreignKey => $model->id, ...array_intersect_key($item, array_flip($relation['compareKeys']))];
-                    // Use updateOrCreate with the dynamic compare keys
-                    $relatedRepository->updateOrCreate($compare, $item);
-                  }
-                }
-              }
-            }
             break;
         }
       }
@@ -408,7 +410,7 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
             //Add relation filter
             if (in_array($filterName, array_keys($modelRelations))) {
               $query = $this->setFilterQuery($query, (object)[
-                'where' => $modelRelations[$filterName]['type'],
+                'where' => $modelRelations[$filterName]['relation'],
                 'table' => $this->model->$filterName()->getTable(),
                 'foreignPivotKey' => $this->model->$filterName()->getForeignPivotKeyName(),
                 'relatedPivotKey' => $this->model->$filterName()->getRelatedPivotKeyName(),
