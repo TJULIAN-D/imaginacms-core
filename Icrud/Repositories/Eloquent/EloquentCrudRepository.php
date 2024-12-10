@@ -825,6 +825,9 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
     //Dispatch deleting events
     if ($eventName == 'deleting') {
+      //Emit event deletingWithBindings
+      if (method_exists($model, 'deletingCrudModel'))
+        $model->deletingCrudModel(['params' => $params, 'criteria' => $criteria]);
     }
 
     //Dispatch deleted events
