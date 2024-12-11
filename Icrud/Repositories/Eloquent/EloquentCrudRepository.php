@@ -879,12 +879,12 @@ abstract class EloquentCrudRepository extends EloquentBaseRepository implements 
 
   public function updateOrCreate($validationData, $data)
   {
-    //update or create
-    $model = $this->model->updateOrCreate($validationData, $data);
-    // Default Sync model relations
-    $model = $this->defaultSyncModelRelations($model, $data);
-    // Custom Sync model relations
-    $model = $this->syncModelRelations($model, $data);
+    //Search the record
+    $model = $this->getItemsBy((object)['filter' => (object)$validationData])->first();
+    $modelData = array_merge($validationData, $data);
+    //update Or Create the record
+    if ($model) $this->updateBy($model->id, $modelData);
+    else $this->create($modelData);
     //Response
     return $model;
   }
