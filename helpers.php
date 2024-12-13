@@ -1,5 +1,6 @@
 <?php
 
+
 if (! function_exists('on_route')) {
     function on_route($route)
     {
@@ -23,13 +24,12 @@ if (! function_exists('locale')) {
 if (! function_exists('is_module_enabled')) {
     function is_module_enabled($module)
     {
-        $activatorClass = get_class(app(config('modules.activators.file.class')));
-        if ($activatorClass == "Modules\Isite\Activators\ModuleActivator") {
-            $activator = app($activatorClass);
-
-            return array_key_exists($module, array_intersect_key($activator->modulesStatuses, app('modules')->allEnabled()));
-        }
-
+      $activatorClass = get_class(app(config("modules.activators.file.class")));
+      if($activatorClass == "Modules\Isite\Activators\ModuleActivator"){
+        $activator = app($activatorClass);
+        return array_key_exists($module,array_intersect_key($activator->modulesStatuses,app('modules')->allEnabled()));
+      }
+      
         return array_key_exists($module, app('modules')->allEnabled());
     }
 }
@@ -63,24 +63,74 @@ if (! function_exists('asgard_editor')) {
 }
 
 if (! function_exists('snakeToCamel')) {
-    function snakeToCamel($input)
-    {
-        return lcfirst(str_replace(' ', '', ucwords(str_replace('_', ' ', $input))));
-    }
+  function snakeToCamel($input)
+  {
+    return lcfirst(str_replace(' ', '', ucwords(str_replace('_', ' ', $input))));
+  }
 }
 
 if (! function_exists('camelToSnake')) {
-    function camelToSnake($input)
-    {
-        $pattern = '!([A-Z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!';
-        preg_match_all($pattern, $input, $matches);
-        $ret = $matches[0];
-        foreach ($ret as &$match) {
-            $match = $match == strtoupper($match) ?
-              strtolower($match) :
-              lcfirst($match);
-        }
+  function camelToSnake($input)
+  {
+    $pattern = '!([A-Z][A-Z0-9]*(?=$|[A-Z][a-z0-9])|[A-Za-z][a-z0-9]+)!';
+    preg_match_all($pattern, $input, $matches);
+    $ret = $matches[0];
+    foreach ($ret as &$match) {
+      $match = $match == strtoupper($match) ?
+        strtolower($match) :
+        lcfirst($match);
+    }
+    return implode('_', $ret);
+  }
+}
 
-        return implode('_', $ret);
+/**
+ * Used by: ClearJobsCacheClearable (JOB) ,  ProcessBulkItems (JOB)
+ */
+if (! function_exists('initProcessCache')) {
+    function initProcessCache()
+    {
+        \Log::info("Core::Helper||initProcessCache");
+
+        \Modules\Core\Jobs\ClearAllResponseCache::dispatch(['force' => true]);
+
+        //Clean Homepage
+        $url = url('/');
+        $client = new \GuzzleHttp\Client();
+        $promise = $client->get($url, ['headers' => ['icache-bypass' => 1]]);
+        \Log::info('Route Update Cache: '. $url);
+    }
+}
+
+/**
+ * Generate testing data to test API BULK
+ */
+if (! function_exists('generateTestingData')) {
+    function generateTestingData($n)
+    {
+        \Log::info("Core::Helper||generateTestingData");
+
+        //Testing Data
+        $products = [];
+        for ($i = 1; $i <= $n; $i++) {
+            $products[] = [
+                'es' => [
+                    'name' => 'Producto ' . $i,
+                    'slug' => 'producto-' . $i,
+                ],
+                'category_id' => 1,
+                'description' => 'esta es una prueba',
+                'summary' => 'Esto es una prueba',
+                'quantity' => 9999,
+                'price' => '15000',
+                'productWarehouses' => [
+                    [
+                        'warehouse_id' => 2,
+                        'quantity' => 10,
+                    ],
+                ],
+            ];
+        }
+        return $products;
     }
 }
