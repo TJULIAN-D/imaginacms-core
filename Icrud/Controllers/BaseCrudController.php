@@ -9,6 +9,8 @@ use Modules\Core\Icrud\Transformers\CrudResource;
 //Default transformer
 use Modules\Ihelpers\Http\Controllers\Api\BaseApiController;
 
+use Modules\Core\Services\BulkService;
+
 class BaseCrudController extends BaseApiController
 {
   /**
@@ -321,4 +323,40 @@ class BaseCrudController extends BaseApiController
     //Return response
     return response($response ?? ['data' => 'Request successful'], $status ?? 200);
   }
+
+  /**
+   * Controller to do a bulk
+   * @param Request $request
+   * @return mixed
+   */
+  public function bulk(Request $request)
+  {
+    \DB::beginTransaction(); //DB Transaction
+    try {
+      
+      $items = $request->input('items') ?? null;
+      $params = $this->getParamsRequest($request);
+      //Only in dev mode
+      /*
+      if(app()->environment('local')){
+        if(isset($params->filter) && isset($params->filter->generateTestingData) && $params->filter->generateTestingData)
+          $items = generateTestingData($params->filter->generateTestingData);
+      }
+      */
+      
+      //Init Service
+      $bulkService = app()->makeWith(BulkService::class,['params' => ['controller'=> $this, 'items'=> $items]]);
+      //Final Response
+      $response = $bulkService->execute();
+    
+      \DB::commit();//Commit to DataBase
+    } catch (\Exception $e) {
+      \DB::rollback();//Rollback to Data Base
+      $status = $this->getStatusError($e->getCode());
+      $response = ["messages" => [["message" => $e->getMessage(), "type" => "error"]]];
+    }
+    //Return response
+    return response()->json($response ?? ["data" => "Request successful"], $status ?? 200);
+  }
+  
 }

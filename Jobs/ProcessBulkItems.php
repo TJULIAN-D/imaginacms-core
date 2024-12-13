@@ -1,0 +1,119 @@
+<?php
+
+namespace Modules\Core\Jobs;
+
+use Illuminate\Bus\Queueable;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+
+use Request;
+
+class ProcessBulkItems implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    /**
+     * vars
+     */
+    private $log;
+
+    public $modelClass;
+    public $chunkId;
+    public $partition;
+    public $items;
+   
+    /**
+     * Construct Base
+     */
+    public function __construct($modelClass,$chunkId,$partition,array $items)
+    {
+        $this->log = 'Core: Jobs||ProcessBulkItems|';
+        
+        $this->modelClass = $modelClass;
+        $this->chunkId = $chunkId;
+        $this->partition = $partition;
+        $this->items = $items;
+    }
+
+    /**
+     * Execute the job.
+     */
+    public function handle(Request $request)
+    {
+        
+        \Log::info($this->log."chunkId: ".$this->chunkId."||INIT");
+
+        //Not clear cache
+        app()->instance('clearResponseCache', false);
+
+        $msjs = [];  //Final Msjs to Errors
+        $this->createOrUpdateItems($msjs);
+        
+        //Process to send final notification
+        $this->webhookProcess($msjs);
+
+        //Apply ClearAllResponseCache (JOB) and clean the home
+        initProcessCache();
+        
+        \Log::info($this->log."chunkId: ".$this->chunkId."||END");
+            
+    }
+
+    /**
+     * Create or Update with msjs
+     */
+    private function createOrUpdateItems(&$msjs)
+    {
+        \Log::info($this->log."createOrUpdateItems");
+
+        //Inst Model 
+        $model = new $this->modelClass;
+        $repository = app($model->repository);
+
+        //Check all Items
+        foreach ($this->items as $key => $item) 
+        {
+            //Check if is creating or updating
+            $operation = isset($item['id']) ? 'update' : 'create';
+            try {
+                $itemResult = ($operation == 'create') ? $repository->create($item) : $repository->updateBy($item['id'],$item);
+            } catch (\Exception $e) {
+                //dd($e);
+                $msjs[] = ['type' => "error",'operation' => $operation,'msjs' =>  $e->getMessage(),'item' => $item];
+            }
+        }
+
+    }
+
+    /**
+     * Webook Process
+     * @param $msjs (Error msjs from item)
+     */
+    private function webhookProcess($msjs)
+    {
+
+        \Log::info($this->log."Webhook Process");
+
+        $totalItems = count($this->items);
+        $failed = count($msjs);
+
+        //Response Final
+        $dataToResponse = [
+            'chunckId' => $this->chunkId,
+            'partition' => $this->partition,
+            'totalItems' => $totalItems,
+            'completed' => $totalItems-$failed,
+            'errors' => $failed,
+            'msjs' => $msjs
+        ];
+
+        \Log::info($this->log."Webhook Process|DataToResponse: ".json_encode($dataToResponse));
+
+        $eventName = 'custom.bulk '.$this->modelClass;
+        event($eventName, $dataToResponse);
+
+    }
+   
+}
