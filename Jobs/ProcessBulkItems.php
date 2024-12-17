@@ -49,10 +49,11 @@ class ProcessBulkItems implements ShouldQueue
         app()->instance('clearResponseCache', false);
 
         $msjs = [];  //Final Msjs to Errors
-        $this->createOrUpdateItems($msjs);
+        $itemsCompleted = []; //Items Completed 
+        $this->createOrUpdateItems($msjs,$itemsCompleted);
         
         //Process to send final notification
-        $this->webhookProcess($msjs);
+        $this->webhookProcess($msjs,$itemsCompleted);
 
         //Apply ClearAllResponseCache (JOB) and clean the home
         initProcessCache();
@@ -64,13 +65,14 @@ class ProcessBulkItems implements ShouldQueue
     /**
      * Create or Update with msjs
      */
-    private function createOrUpdateItems(&$msjs)
+    private function createOrUpdateItems(&$msjs,&$itemsCompleted)
     {
         \Log::info($this->log."createOrUpdateItems");
 
         //Inst Model 
         $model = new $this->modelClass;
         $repository = app($model->repository);
+        $transformer = $model->transformer;
 
         //Check all Items
         foreach ($this->items as $key => $item) 
@@ -79,6 +81,10 @@ class ProcessBulkItems implements ShouldQueue
             $operation = isset($item['id']) ? 'update' : 'create';
             try {
                 $itemResult = ($operation == 'create') ? $repository->create($item) : $repository->updateBy($item['id'],$item);
+                
+                //items Save
+                $itemsCompleted[] = new $transformer($itemResult);
+                   
             } catch (\Exception $e) {
                 //dd($e);
                 $msjs[] = ['type' => "error",'operation' => $operation,'msjs' =>  $e->getMessage(),'item' => $item];
@@ -91,7 +97,7 @@ class ProcessBulkItems implements ShouldQueue
      * Webook Process
      * @param $msjs (Error msjs from item)
      */
-    private function webhookProcess($msjs)
+    private function webhookProcess($msjs,$itemsCompleted)
     {
 
         \Log::info($this->log."Webhook Process");
@@ -105,6 +111,7 @@ class ProcessBulkItems implements ShouldQueue
             'partition' => $this->partition,
             'totalItems' => $totalItems,
             'completed' => $totalItems-$failed,
+            'itemsCompleted' => $itemsCompleted,
             'errors' => $failed,
             'msjs' => $msjs
         ];
@@ -112,7 +119,7 @@ class ProcessBulkItems implements ShouldQueue
         \Log::info($this->log."Webhook Process|DataToResponse: ".json_encode($dataToResponse));
 
         $eventName = 'custom.bulk '.$this->modelClass;
-        event($eventName, $dataToResponse);
+        event($eventName, [$dataToResponse]);
 
     }
    
