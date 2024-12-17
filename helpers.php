@@ -117,9 +117,10 @@ if (! function_exists('generateTestingData')) {
                 'es' => [
                     'name' => 'Producto ' . $i,
                     'slug' => 'producto-' . $i,
+                    'summary' => 'summary-' . $i,
+                    'description' => 'esta es una prueba',
                 ],
                 'category_id' => 1,
-                'description' => 'esta es una prueba',
                 'summary' => 'Esto es una prueba',
                 'quantity' => 9999,
                 'price' => '15000',
